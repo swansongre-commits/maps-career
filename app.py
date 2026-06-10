@@ -27,7 +27,23 @@ def load_engine():
 
 R = load_engine()
 
+import re
+from urllib.parse import quote
+
 VIA_BADGE = {"공시": "🟦", "쉬운말": "🟩"}
+
+# 대학명 클릭 → EBSi 대학 검색(새창). 괄호 캠퍼스 표기는 검색어에서 제거.
+EBSI_BASE = ("https://www.ebsi.co.kr/ebs/ent/entNgf/retrieveEntNgfUnivList.ebs"
+             "?srchUnivNm=")
+
+
+def _ebsi_url(name):
+    base = re.sub(r"\(.*?\)", "", str(name)).strip() or str(name)
+    return EBSI_BASE + quote(base)
+
+
+def univ_link(name):
+    return f'<a href="{_ebsi_url(name)}" target="_blank">{name}</a>'
 
 # ── 화이트 베이스 팔레트 · 강한 CTA(비비드 오렌지) ──
 FABRIK = {
@@ -37,9 +53,11 @@ FABRIK = {
     "border": "#DCE1E7",    # 보더(연한 그레이)
     "cta": "#FF6A2C",       # 강한 CTA(비비드 오렌지)
     "cta_dim": "#E25419",
-    "cta_soft": "#FFF1E9",  # CTA 연한 배경(활성 탭 등)
+    "cta_soft": "#FFF1E9",  # CTA 연한 배경
+    "navy": "#2B3D6B",      # 활성 탭 글자(네이비)
+    "tabbg": "#F5F6F8",     # 비활성 탭 배경
     "text": "#1E2530",      # 본문 텍스트(니어 블랙)
-    "muted": "#7A828C",     # 보조/비활성 텍스트
+    "muted": "#8A929C",     # 보조/비활성 텍스트
 }
 
 CSS = f"""
@@ -55,33 +73,35 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{
     border-radius: 14px;
 }}
 
-/* ── 탭 헤더: 활성/비활성 강하게 구분 ── */
+/* ── 탭 헤더: 셀형(EBSi 스타일) · 활성=흰배경 네이비 굵게 / 비활성=회색 ── */
 div[data-baseweb="tab-list"] {{
-    gap: 6px;
-    border-bottom: 2px solid {FABRIK['border']};
+    gap: 0;
+    border-bottom: 1px solid {FABRIK['border']};
 }}
 button[data-baseweb="tab"] {{
-    font-weight: 600;
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
     color: {FABRIK['muted']};
-    background: {FABRIK['surface']};
+    background: {FABRIK['tabbg']};
     border: 1px solid {FABRIK['border']};
-    border-bottom: none;
-    border-radius: 10px 10px 0 0;
-    padding: 0.5rem 1.1rem;
-    margin-bottom: -2px;
+    border-right: none;
+    border-radius: 0;
+    padding: 0.75rem 0;
+    font-weight: 600;
+    margin-bottom: -1px;
 }}
-button[data-baseweb="tab"]:hover {{ color: {FABRIK['cta_dim']}; background: {FABRIK['cta_soft']}; }}
-/* 활성 탭 — 흰 배경 + CTA 글자/굵게 + 상단 CTA 라인 + 하단 연결 */
+button[data-baseweb="tab"]:last-child {{ border-right: 1px solid {FABRIK['border']}; }}
+button[data-baseweb="tab"]:hover {{ color: {FABRIK['navy']}; background: #ECEFF3; }}
+/* 활성 탭 — 흰 배경 + 네이비 굵은 글자 + 하단 라인 제거(본문과 연결) */
 button[data-baseweb="tab"][aria-selected="true"] {{
-    color: {FABRIK['cta_dim']};
+    color: {FABRIK['navy']};
     background: {FABRIK['bg']};
-    border-color: {FABRIK['border']};
-    border-top: 3px solid {FABRIK['cta']};
+    border-bottom: 1px solid {FABRIK['bg']};
     font-weight: 800;
 }}
-button[data-baseweb="tab"][aria-selected="true"] p {{ font-weight: 800; }}
-div[data-baseweb="tab-highlight"] {{ background-color: {FABRIK['cta']}; height: 3px; }}
-div[data-baseweb="tab-border"] {{ background-color: transparent; }}
+button[data-baseweb="tab"][aria-selected="true"] p {{ font-weight: 800; color: {FABRIK['navy']}; font-size: 1.02rem; }}
+div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {{ background-color: transparent; }}
 
 /* 추천 항목 버튼 = 한 줄 리스트 행 */
 div[data-testid="stButton"] > button {{
@@ -166,20 +186,22 @@ def _render_major_detail(r):
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
     if univ.get("univ_count", 0) > 0:
-        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳) · 지역·전형·인원"):
+        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳) · 지역·전형·인원  ·  대학명 클릭 시 EBSi"):
             for region, unis in univ["by_region"].items():
                 st.markdown(f"**{region}** ({len(unis)}곳)")
                 for u in unis:
                     jh = ", ".join(u["전형"][:4]) if u["전형"] else "전형정보 없음"
                     cap = f" · 모집 {u['인원']}명" if u.get("인원") else ""
-                    st.markdown(f"- {u['대학명']} — {jh}{cap}")
+                    st.markdown(f"- {univ_link(u['대학명'])} — {jh}{cap}",
+                                unsafe_allow_html=True)
     else:
         uni = extra.get("개설대학", "")
         if uni:
             by_region, total = parse_universities_legacy(uni)
-            with st.expander(f"🏛️ 개설대학 ({total}곳)"):
+            with st.expander(f"🏛️ 개설대학 ({total}곳)  ·  대학명 클릭 시 EBSi"):
                 for region, unis in list(by_region.items())[:8]:
-                    st.markdown(f"- **{region}**: {', '.join(sorted(set(unis))[:6])}")
+                    links = ", ".join(univ_link(u) for u in sorted(set(unis))[:6])
+                    st.markdown(f"- **{region}**: {links}", unsafe_allow_html=True)
 
     subj = R.subjects_of_major(r)
     n_subj = sum(len(v) for v in subj.values())
@@ -401,11 +423,13 @@ with TAB_SCHOOL:
                     # 연관 학과의 설치대학
                     uinfo = R.universities_for(m["name"])
                     if uinfo.get("univ_count", 0) > 0:
-                        st.markdown(f"**🏛️ 설치대학 {uinfo['univ_count']}곳**")
+                        st.markdown(f"**🏛️ 설치대학 {uinfo['univ_count']}곳** "
+                                    "· 대학명 클릭 시 EBSi")
                         for region, unis in list(uinfo["by_region"].items()):
-                            names_u = ", ".join(u["대학명"] for u in unis[:10])
+                            names_u = ", ".join(univ_link(u["대학명"]) for u in unis[:10])
                             more = f" 외 {len(unis)-10}곳" if len(unis) > 10 else ""
-                            st.markdown(f"- **{region}** ({len(unis)}): {names_u}{more}")
+                            st.markdown(f"- **{region}** ({len(unis)}): {names_u}{more}",
+                                        unsafe_allow_html=True)
                     else:
                         st.caption("🏛️ 설치대학 정보 없음(전문대·교양학부 등)")
 
