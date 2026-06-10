@@ -281,13 +281,16 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
 
 /* 분류(대/중/소) 라디오 — 행 전체를 선택영역으로(이미지 스타일) */
-[class*="st-key-cat_"] div[role="radiogroup"] {{ gap: 4px; }}
+[class*="st-key-cat_"] div[role="radiogroup"] {{ width: 100%; gap: 4px; }}
 [class*="st-key-cat_"] div[role="radiogroup"] > label {{
-    width: 100%; margin: 0; padding: 9px 14px; cursor: pointer;
+    display: flex; align-items: center; box-sizing: border-box; width: 100%;
+    margin: 0; padding: 9px 14px; cursor: pointer;
     border: 1px solid {FABRIK['border']}; border-radius: 8px;
     background: #fff; transition: all .1s ease; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label > div:first-child {{ display: none; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label p {{ font-size: 0.95rem; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label > div:first-child {{
+    display: none !important; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label > div {{ width: 100%; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label p {{ font-size: 0.95rem; margin: 0; }}
 [class*="st-key-cat_"] div[role="radiogroup"] > label:hover {{
     background: {FABRIK['cta_soft']}; border-color: {FABRIK['cta']}; }}
 [class*="st-key-cat_"] div[role="radiogroup"] > label:has(input:checked) {{
