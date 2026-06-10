@@ -1,0 +1,25 @@
+# ── secrets — 절대 커밋 금지 ──
+.streamlit/secrets.toml
+.env
+*.key
+!.env.example
+
+# ── 대용량 원본 다운로드 (배포 불필요, 합 ~4.5GB) ──
+curriculum_files/
+curriculum_files_*/
+*.zip
+
+# ── tunnel / 외부공유 임시파일 ──
+tunnel.log
+tunnel_out.log
+
+# ── python ──
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# ── logs / temp ──
+*.log
+st_out.log
+st_err.log
+_inspect.json

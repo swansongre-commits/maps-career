@@ -1,0 +1,14 @@
+# 블랙-그레이 톤 · 강한 CTA(비비드 오렌지) — app.py CSS와 정렬
+[theme]
+base = "dark"
+primaryColor = "#FF6A2C"              # 강한 CTA(비비드 오렌지)
+backgroundColor = "#15181C"           # 니어 블랙 배경
+secondaryBackgroundColor = "#1F242A"  # 다크 그레이 표면(사이드바·카드)
+textColor = "#E8EAED"                 # 라이트 그레이 텍스트
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true
