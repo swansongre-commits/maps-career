@@ -21,31 +21,37 @@ st.set_page_config(page_title="진로 추천", page_icon="🎓", layout="wide")
 
 # 페이지 언어를 한국어로 명시 → 브라우저 자동 번역 제안 제거
 # (Streamlit 기본 <html lang="en">이라 한국어 내용에 번역 팝업이 뜸)
-# 컴포넌트 iframe에서 부모 문서 접근이 늦을 수 있어 즉시+지연 재시도.
+# height=0이면 iframe이 안 떠 스크립트 미실행 → height=1로 마운트 보장.
+# window.top(최상위) 우선 + 부모 폴백, lang/translate/notranslate 모두 적용 후 재시도.
 components.html(
     """
 <script>
 (function(){
+  function docs(){
+    var out=[]; try{ if(window.top&&window.top.document) out.push(window.top.document);}catch(e){}
+    try{ if(window.parent&&window.parent.document&&out.indexOf(window.parent.document)<0)
+          out.push(window.parent.document);}catch(e){}
+    return out;
+  }
   function setKo(){
-    try{
-      var d = window.parent.document;
-      d.documentElement.setAttribute('lang','ko');
-      d.documentElement.setAttribute('translate','no');
-      var h = d.head || d.getElementsByTagName('head')[0];
-      if(h && !d.querySelector('meta[name="google"][content="notranslate"]')){
-        var m = d.createElement('meta');
-        m.name='google'; m.content='notranslate'; h.appendChild(m);
-      }
-    }catch(e){}
+    docs().forEach(function(d){
+      try{
+        d.documentElement.setAttribute('lang','ko');
+        d.documentElement.setAttribute('translate','no');
+        if(d.body) d.body.setAttribute('translate','no');
+        var h = d.head || d.getElementsByTagName('head')[0];
+        if(h && !d.querySelector('meta[name="google"][content="notranslate"]')){
+          var m=d.createElement('meta'); m.name='google'; m.content='notranslate'; h.appendChild(m);
+        }
+      }catch(e){}
+    });
   }
   setKo();
-  setTimeout(setKo, 400);
-  setTimeout(setKo, 1200);
-  setTimeout(setKo, 3000);
+  [200,600,1500,3000,6000].forEach(function(t){ setTimeout(setKo, t); });
 })();
 </script>
 """,
-    height=0,
+    height=1,
 )
 
 
