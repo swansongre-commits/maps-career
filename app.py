@@ -679,7 +679,9 @@ with TAB_SCHOOL:
 
 
 # %% [탭3 — 학과별 정보: 검색+목록 → 상세(설치 고교 보기 포함)]
-with TAB_MAJOR:
+@st.fragment
+def render_major_info_tab():
+    """분류 선택 시 이 영역만 재실행(전체 탭 리렌더 방지 → 반응 빠름)."""
     st.markdown("##### 📚 학과별 정보 — 학과를 고르면 키워드·설치대학·선택과목을 보여줍니다")
     names = R.major_names()
 
@@ -749,3 +751,7 @@ with TAB_MAJOR:
                     major_info_modal(nm)
         if len(results) > GRID_CAP:
             st.caption(f"… 외 {len(results) - GRID_CAP}개. 검색·소분류로 좁혀보세요.")
+
+
+with TAB_MAJOR:
+    render_major_info_tab()
