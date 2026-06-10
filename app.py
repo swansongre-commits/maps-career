@@ -59,37 +59,42 @@ def univ_link(name):
 
 
 def school_table_html(sch):
-    """학교 목록 → 시도/시군구 행병합 + 시도경계 굵은선 테이블 HTML."""
-    n = len(sch)
-    if n == 0:
+    """학교 목록 → 한 테이블(헤더 1개). 시도/시군구 행병합 + 시도경계 굵은선,
+    학교명은 한 행에 2개씩 배치(가로 공간 활용)."""
+    if not sch:
         return ""
-    sido_span, gug_span = [0] * n, [0] * n
-    i = 0
-    while i < n:
-        j = i
-        while j < n and sch[j]["sido"] == sch[i]["sido"]:
-            j += 1
-        sido_span[i] = j - i
-        i = j
-    i = 0
-    while i < n:
-        j = i
-        while (j < n and sch[j]["sido"] == sch[i]["sido"]
-               and sch[j]["gugun"] == sch[i]["gugun"]):
-            j += 1
-        gug_span[i] = j - i
-        i = j
+    from math import ceil
+    # (시도, 시군구) 순서 보존 그룹
+    groups = []
+    for o in sch:
+        if groups and groups[-1][0] == o["sido"] and groups[-1][1] == o["gugun"]:
+            groups[-1][2].append(o["school"])
+        else:
+            groups.append((o["sido"], o["gugun"], [o["school"]]))
+    # 시도별 총 행수(각 시군구의 ceil(학교수/2) 합)
+    sido_rows = {}
+    for sido, gugun, schools in groups:
+        sido_rows[sido] = sido_rows.get(sido, 0) + ceil(len(schools) / 2)
     trs = []
-    for k, o in enumerate(sch):
-        cells = ""
-        if sido_span[k]:
-            cells += f"<td class='grp' rowspan='{sido_span[k]}'>{o['sido']}</td>"
-        if gug_span[k]:
-            cells += f"<td class='grp' rowspan='{gug_span[k]}'>{o['gugun']}</td>"
-        cls = " class='grp-start'" if sido_span[k] else ""
-        trs.append(f"<tr{cls}>{cells}<td><b>{o['school']}</b></td></tr>")
+    sido_emitted = set()
+    for sido, gugun, schools in groups:
+        gug_rows = ceil(len(schools) / 2)
+        for ri in range(gug_rows):
+            pair = schools[ri * 2:ri * 2 + 2]
+            cells = ""
+            new_sido = sido not in sido_emitted and ri == 0
+            if new_sido:
+                cells += f"<td class='grp' rowspan='{sido_rows[sido]}'>{sido}</td>"
+                sido_emitted.add(sido)
+            if ri == 0:
+                cells += f"<td class='grp' rowspan='{gug_rows}'>{gugun}</td>"
+            s1 = f"<td><b>{pair[0]}</b></td>"
+            s2 = f"<td><b>{pair[1]}</b></td>" if len(pair) > 1 else "<td></td>"
+            cls = " class='grp-start'" if new_sido else ""
+            trs.append(f"<tr{cls}>{cells}{s1}{s2}</tr>")
     return ("<table class='univ-tb'><thead><tr><th>시도</th><th>시군구</th>"
-            "<th>학교명</th></tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
+            "<th colspan='2'>학교명</th></tr></thead><tbody>"
+            + "".join(trs) + "</tbody></table>")
 
 
 def pair_card_html(p):
@@ -578,14 +583,8 @@ with TAB_SCHOOL:
                 sido=None if f_sido == "전체" else f_sido,
                 gugun=None if f_gugun == "전체" else f_gugun)
             st.caption(f"{len(offered):,}개교")
-            CAP = 120
-            sch = offered[:CAP]
-            half = (len(sch) + 1) // 2
-            tc1, tc2 = st.columns(2)
-            with tc1:
-                st.markdown(school_table_html(sch[:half]), unsafe_allow_html=True)
-            with tc2:
-                st.markdown(school_table_html(sch[half:]), unsafe_allow_html=True)
+            CAP = 140
+            st.markdown(school_table_html(offered[:CAP]), unsafe_allow_html=True)
             if len(offered) > CAP:
                 st.caption(f"… 외 {len(offered) - CAP:,}개교. 지역 필터로 좁혀보세요.")
 
@@ -616,18 +615,33 @@ with TAB_SCHOOL:
 with TAB_MAJOR:
     st.markdown("##### 📚 학과별 정보 — 학과를 고르면 키워드·설치대학·선택과목을 보여줍니다")
     names = R.major_names()
-    mq = st.text_input("학과명 검색", key="major_q", placeholder="예) 시각디자인, 기계, 간호")
+    qc1, qc2 = st.columns([5, 1])
+    with qc1:
+        mq = st.text_input("학과명 검색", key="major_q",
+                           placeholder="예) 시각디자인, 기계, 간호",
+                           label_visibility="collapsed")
+    with qc2:
+        st.button("🔍 검색", use_container_width=True, key="major_search_btn")
     flt = [n for n in names if not mq.strip() or mq.strip() in n]
-    st.caption(f"{len(flt)}개 학과")
-    sel = st.selectbox("학과 선택", ["(선택)"] + flt, key="major_sel")
-    if sel != "(선택)":
+    st.caption(f"{len(flt)}개 학과 — 학과를 누르면 아래에 상세가 표시됩니다")
+
+    GRID_CAP = 60
+    gcols = st.columns(2)
+    for idx, nm in enumerate(flt[:GRID_CAP]):
+        with gcols[idx % 2]:
+            if st.button(nm, key=f"majinfo_{nm}", use_container_width=True):
+                st.session_state["major_info_sel"] = nm
+    if len(flt) > GRID_CAP:
+        st.caption(f"… 외 {len(flt) - GRID_CAP}개. 검색으로 좁혀보세요.")
+
+    sel = st.session_state.get("major_info_sel")
+    if sel:
         r = R.major_by_name(sel)
         if r:
+            st.markdown("---")
             st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
             st.markdown("**대표 키워드** — " + reason_line(r["reasons"], limit=10))
-            st.markdown("---")
             _render_major_detail(r)
-            # 설치 고교 보기 — 이 학과 선택과목별 개설 고교 수
             with st.expander("🏫 설치 고교 보기 (선택과목 개설 학교)"):
                 subj = R.subjects_of_major(r)
                 flat = [s for v in subj.values() for s in v]
@@ -636,4 +650,4 @@ with TAB_MAJOR:
                     n = len(R.schools_offering(s))
                     st.markdown(f"- **{s}** — {n:,}개교 개설")
     else:
-        st.info("학과를 검색·선택하면 상세 정보가 표시됩니다.")
+        st.info("학과를 검색하고 위 목록에서 누르면 상세 정보가 표시됩니다.")
