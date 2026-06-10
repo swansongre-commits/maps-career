@@ -29,24 +29,23 @@ R = load_engine()
 
 VIA_BADGE = {"공시": "🟦", "쉬운말": "🟩"}
 
-# ── 블랙-그레이 팔레트 · 강한 CTA(비비드 오렌지) ──
+# ── 화이트 베이스 팔레트 · 강한 CTA(비비드 오렌지) ──
 FABRIK = {
-    "bg": "#15181C",        # 페이지 배경(니어 블랙)
-    "surface": "#1F242A",   # 카드/사이드바 표면(다크 그레이)
-    "surface2": "#272D34",  # 버튼/행 표면
-    "modal": "#2A313A",     # 모달 표면(베이스보다 밝게 → 구분)
-    "border": "#39414A",    # 보더(그레이)
+    "bg": "#FFFFFF",        # 페이지 배경(흰색)
+    "surface": "#F4F6F8",   # 카드/사이드바 표면(연한 그레이)
+    "surface2": "#FFFFFF",  # 버튼/행 표면(흰색)
+    "border": "#DCE1E7",    # 보더(연한 그레이)
     "cta": "#FF6A2C",       # 강한 CTA(비비드 오렌지)
     "cta_dim": "#E25419",
-    "text": "#E8EAED",      # 본문 텍스트(라이트 그레이)
-    "muted": "#9AA0A6",     # 보조 텍스트
+    "cta_soft": "#FFF1E9",  # CTA 연한 배경(활성 탭 등)
+    "text": "#1E2530",      # 본문 텍스트(니어 블랙)
+    "muted": "#7A828C",     # 보조/비활성 텍스트
 }
 
 CSS = f"""
 <style>
 .stApp {{ background: {FABRIK['bg']}; color: {FABRIK['text']}; }}
 h1, h2, h3, h4, h5, h6 {{ color: {FABRIK['text']}; letter-spacing: -0.2px; }}
-p, span, label, li {{ color: {FABRIK['text']}; }}
 section[data-testid="stSidebar"] {{ background: {FABRIK['surface']}; border-right: 1px solid {FABRIK['border']}; }}
 
 /* 결과 칼럼(테두리 컨테이너) */
@@ -56,9 +55,33 @@ div[data-testid="stVerticalBlockBorderWrapper"] {{
     border-radius: 14px;
 }}
 
-/* 탭 헤더 */
-button[data-baseweb="tab"] {{ font-weight: 600; }}
-div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {{ background-color: {FABRIK['cta']}; }}
+/* ── 탭 헤더: 활성/비활성 강하게 구분 ── */
+div[data-baseweb="tab-list"] {{
+    gap: 6px;
+    border-bottom: 2px solid {FABRIK['border']};
+}}
+button[data-baseweb="tab"] {{
+    font-weight: 600;
+    color: {FABRIK['muted']};
+    background: {FABRIK['surface']};
+    border: 1px solid {FABRIK['border']};
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 0.5rem 1.1rem;
+    margin-bottom: -2px;
+}}
+button[data-baseweb="tab"]:hover {{ color: {FABRIK['cta_dim']}; background: {FABRIK['cta_soft']}; }}
+/* 활성 탭 — 흰 배경 + CTA 글자/굵게 + 상단 CTA 라인 + 하단 연결 */
+button[data-baseweb="tab"][aria-selected="true"] {{
+    color: {FABRIK['cta_dim']};
+    background: {FABRIK['bg']};
+    border-color: {FABRIK['border']};
+    border-top: 3px solid {FABRIK['cta']};
+    font-weight: 800;
+}}
+button[data-baseweb="tab"][aria-selected="true"] p {{ font-weight: 800; }}
+div[data-baseweb="tab-highlight"] {{ background-color: {FABRIK['cta']}; height: 3px; }}
+div[data-baseweb="tab-border"] {{ background-color: transparent; }}
 
 /* 추천 항목 버튼 = 한 줄 리스트 행 */
 div[data-testid="stButton"] > button {{
@@ -75,7 +98,7 @@ div[data-testid="stButton"] > button {{
 div[data-testid="stButton"] > button p {{ text-align: left; margin: 0; }}
 div[data-testid="stButton"] > button:hover {{
     border-color: {FABRIK['cta']};
-    background: #30373F;
+    background: {FABRIK['cta_soft']};
     transform: translateY(-1px);
 }}
 
@@ -85,38 +108,26 @@ div[data-testid="stButton"] > button[kind="primary"] {{
     color: #FFFFFF;
     border: 1px solid {FABRIK['cta']};
     text-align: center;
-    box-shadow: 0 2px 12px {FABRIK['cta']}55;
+    box-shadow: 0 2px 12px {FABRIK['cta']}40;
 }}
 div[data-testid="stButton"] > button[kind="primary"] p {{ text-align: center; color: #FFFFFF; }}
 div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: {FABRIK['cta_dim']}; }}
 
-/* 입력/셀렉트 표면 */
-div[data-baseweb="select"] > div, textarea, input {{
-    background: {FABRIK['surface2']} !important;
-    color: {FABRIK['text']} !important;
-    border-color: {FABRIK['border']} !important;
-}}
-
-/* 모달(dialog) — 베이스보다 밝은 표면 + 강한 그림자·CTA 라인으로 구분 */
+/* 모달(dialog) — 흰 배경 위에서 떠 보이게 그림자·CTA 라인 */
 div[role="dialog"], div[data-testid="stDialog"] > div > div {{
-    background: {FABRIK['modal']} !important;
     border: 1px solid {FABRIK['border']} !important;
     border-top: 4px solid {FABRIK['cta']} !important;
     border-radius: 14px !important;
-    box-shadow: 0 22px 60px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 18px 50px rgba(30,37,48,0.28) !important;
 }}
-div[data-testid="stDialogOverlay"] {{ background: rgba(0,0,0,0.62) !important; }}
+div[data-testid="stDialogOverlay"] {{ background: rgba(30,37,48,0.45) !important; }}
 
 /* 아코디언 */
 details {{ border-radius: 10px !important; border: 1px solid {FABRIK['border']} !important;
           background: {FABRIK['surface2']}; }}
-summary, .streamlit-expanderHeader {{ color: {FABRIK['text']} !important; }}
-
-/* 알림 박스 */
-div[data-testid="stAlert"] {{ background: {FABRIK['surface2']}; color: {FABRIK['text']}; }}
 
 /* 코드/키워드 칩 */
-code {{ background: {FABRIK['cta']}26; color: #FFB48C; border-radius: 6px; padding: 1px 6px; }}
+code {{ background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']}; border-radius: 6px; padding: 1px 6px; }}
 hr {{ border-color: {FABRIK['border']}; }}
 </style>
 """
