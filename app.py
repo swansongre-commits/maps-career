@@ -15,8 +15,20 @@
           stopwords.json, compounds.json
 """
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="진로 추천", page_icon="🎓", layout="wide")
+
+# 페이지 언어를 한국어로 명시 → 브라우저 자동 번역 제안 제거
+# (Streamlit 기본 <html lang="en">이라 한국어 내용에 번역 팝업이 뜸)
+components.html(
+    "<script>try{window.parent.document.documentElement.lang='ko';"
+    "var m=window.parent.document.querySelector('meta[name=google]')||"
+    "window.parent.document.createElement('meta');"
+    "m.name='google';m.content='notranslate';"
+    "window.parent.document.head.appendChild(m);}catch(e){}</script>",
+    height=0,
+)
 
 
 @st.cache_resource
