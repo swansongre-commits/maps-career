@@ -21,12 +21,30 @@ st.set_page_config(page_title="진로 추천", page_icon="🎓", layout="wide")
 
 # 페이지 언어를 한국어로 명시 → 브라우저 자동 번역 제안 제거
 # (Streamlit 기본 <html lang="en">이라 한국어 내용에 번역 팝업이 뜸)
+# 컴포넌트 iframe에서 부모 문서 접근이 늦을 수 있어 즉시+지연 재시도.
 components.html(
-    "<script>try{window.parent.document.documentElement.lang='ko';"
-    "var m=window.parent.document.querySelector('meta[name=google]')||"
-    "window.parent.document.createElement('meta');"
-    "m.name='google';m.content='notranslate';"
-    "window.parent.document.head.appendChild(m);}catch(e){}</script>",
+    """
+<script>
+(function(){
+  function setKo(){
+    try{
+      var d = window.parent.document;
+      d.documentElement.setAttribute('lang','ko');
+      d.documentElement.setAttribute('translate','no');
+      var h = d.head || d.getElementsByTagName('head')[0];
+      if(h && !d.querySelector('meta[name="google"][content="notranslate"]')){
+        var m = d.createElement('meta');
+        m.name='google'; m.content='notranslate'; h.appendChild(m);
+      }
+    }catch(e){}
+  }
+  setKo();
+  setTimeout(setKo, 400);
+  setTimeout(setKo, 1200);
+  setTimeout(setKo, 3000);
+})();
+</script>
+""",
     height=0,
 )
 
@@ -326,10 +344,10 @@ def _cat_buttons(items, prefix, sel_key, clear_keys=()):
     선택된 버튼은 네이비로 강조(인덱스 기반 동적 CSS)."""
     for idx, it in enumerate(items):
         if st.button(it, key=f"{prefix}_{idx}", use_container_width=True):
+            # 버튼 클릭은 그 자체로 재실행을 유발 → st.rerun() 불필요(중복 실행 방지)
             st.session_state[sel_key] = it
             for ck in clear_keys:
                 st.session_state.pop(ck, None)
-            st.rerun()
     cur = st.session_state.get(sel_key)
     if cur in items:
         i = items.index(cur)
