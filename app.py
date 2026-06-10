@@ -58,6 +58,40 @@ def univ_link(name):
     return f'<a href="{_ebsi_url(name)}" target="_blank">{name}</a>'
 
 
+def school_table_html(sch):
+    """학교 목록 → 시도/시군구 행병합 + 시도경계 굵은선 테이블 HTML."""
+    n = len(sch)
+    if n == 0:
+        return ""
+    sido_span, gug_span = [0] * n, [0] * n
+    i = 0
+    while i < n:
+        j = i
+        while j < n and sch[j]["sido"] == sch[i]["sido"]:
+            j += 1
+        sido_span[i] = j - i
+        i = j
+    i = 0
+    while i < n:
+        j = i
+        while (j < n and sch[j]["sido"] == sch[i]["sido"]
+               and sch[j]["gugun"] == sch[i]["gugun"]):
+            j += 1
+        gug_span[i] = j - i
+        i = j
+    trs = []
+    for k, o in enumerate(sch):
+        cells = ""
+        if sido_span[k]:
+            cells += f"<td class='grp' rowspan='{sido_span[k]}'>{o['sido']}</td>"
+        if gug_span[k]:
+            cells += f"<td class='grp' rowspan='{gug_span[k]}'>{o['gugun']}</td>"
+        cls = " class='grp-start'" if sido_span[k] else ""
+        trs.append(f"<tr{cls}>{cells}<td><b>{o['school']}</b></td></tr>")
+    return ("<table class='univ-tb'><thead><tr><th>시도</th><th>시군구</th>"
+            "<th>학교명</th></tr></thead><tbody>" + "".join(trs) + "</tbody></table>")
+
+
 def pair_card_html(p):
     """연계 진로 1건 → 등식 카드 HTML (📚학과 + 💼직업 = 🧭진로 · 공통 키워드)."""
     strong = " cp-strong" if p["overlap_n"] >= 3 else ""
@@ -544,38 +578,14 @@ with TAB_SCHOOL:
                 sido=None if f_sido == "전체" else f_sido,
                 gugun=None if f_gugun == "전체" else f_gugun)
             st.caption(f"{len(offered):,}개교")
-            CAP = 80
+            CAP = 120
             sch = offered[:CAP]
-            n = len(sch)
-            sido_span, gug_span = [0] * n, [0] * n
-            i = 0
-            while i < n:  # 같은 시도 연속 → rowspan
-                j = i
-                while j < n and sch[j]["sido"] == sch[i]["sido"]:
-                    j += 1
-                sido_span[i] = j - i
-                i = j
-            i = 0
-            while i < n:  # 같은 (시도,시군구) 연속 → rowspan
-                j = i
-                while (j < n and sch[j]["sido"] == sch[i]["sido"]
-                       and sch[j]["gugun"] == sch[i]["gugun"]):
-                    j += 1
-                gug_span[i] = j - i
-                i = j
-            trs = []
-            for k, o in enumerate(sch):
-                cells = ""
-                if sido_span[k]:
-                    cells += f"<td class='grp' rowspan='{sido_span[k]}'>{o['sido']}</td>"
-                if gug_span[k]:
-                    cells += f"<td class='grp' rowspan='{gug_span[k]}'>{o['gugun']}</td>"
-                cls = " class='grp-start'" if sido_span[k] else ""
-                trs.append(f"<tr{cls}>{cells}<td><b>{o['school']}</b></td></tr>")
-            st.markdown(
-                "<table class='univ-tb'><thead><tr><th>시도</th><th>시군구</th>"
-                "<th>학교명</th></tr></thead><tbody>" + "".join(trs) + "</tbody></table>",
-                unsafe_allow_html=True)
+            half = (len(sch) + 1) // 2
+            tc1, tc2 = st.columns(2)
+            with tc1:
+                st.markdown(school_table_html(sch[:half]), unsafe_allow_html=True)
+            with tc2:
+                st.markdown(school_table_html(sch[half:]), unsafe_allow_html=True)
             if len(offered) > CAP:
                 st.caption(f"… 외 {len(offered) - CAP:,}개교. 지역 필터로 좁혀보세요.")
 
