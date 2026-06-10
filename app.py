@@ -216,6 +216,7 @@ table.univ-tb th, table.univ-tb td {{
 table.univ-tb th {{ background: {FABRIK['surface']}; font-weight: 700; }}
 table.univ-tb td.rg {{ white-space: nowrap; font-weight: 700; width: 78px;
     color: {FABRIK['navy']}; background: {FABRIK['surface']}; }}
+table.univ-tb td.nw {{ white-space: nowrap; color: {FABRIK['muted']}; font-weight: 600; }}
 table.univ-tb td a {{ color: {FABRIK['cta_dim']}; }}
 
 /* 연계 진로 등식 카드(학과 + 직업 = 진로) */
@@ -539,10 +540,16 @@ with TAB_SCHOOL:
                 sido=None if f_sido == "전체" else f_sido,
                 gugun=None if f_gugun == "전체" else f_gugun)
             st.caption(f"{len(offered):,}개교")
-            for o in offered[:60]:
-                st.markdown(f"- {o['sido']} {o['gugun']} · **{o['school']}**")
-            if len(offered) > 60:
-                st.caption(f"… 외 {len(offered) - 60:,}개교. 지역 필터로 좁혀보세요.")
+            CAP = 80
+            rows = "".join(
+                f"<tr><td class='nw'>{o['sido']}</td><td class='nw'>{o['gugun']}</td>"
+                f"<td><b>{o['school']}</b></td></tr>" for o in offered[:CAP])
+            st.markdown(
+                "<table class='univ-tb'><thead><tr><th>시도</th><th>시군구</th>"
+                "<th>학교명</th></tr></thead><tbody>" + rows + "</tbody></table>",
+                unsafe_allow_html=True)
+            if len(offered) > CAP:
+                st.caption(f"… 외 {len(offered) - CAP:,}개교. 지역 필터로 좁혀보세요.")
 
     else:  # 학교로 찾기
         st.markdown("##### 🏫 학교로 찾기 — 학교를 고르면 개설과목을 보여줍니다")
