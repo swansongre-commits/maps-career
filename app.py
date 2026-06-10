@@ -370,20 +370,25 @@ def _cat_desktop_panels(daes, p):
 
 
 def _cat_mobile_accordion(daes, p):
-    """모바일 아코디언(대→중→소). prefix p로 위젯키 구분, 선택은 sel_* 공유."""
+    """모바일 아코디언(대→중→소). 세 단계 항상 표시, 선택은 sel_* 공유."""
     sd = st.session_state.get("sel_dae")
     sj = st.session_state.get("sel_jung")
     with st.expander("① 대분류" + (f" · {sd}" if sd else "  (선택)"), expanded=not sd):
         d = _cat_buttons(daes, f"{p}_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
-    if d:
-        jungs = R.category_jungs(d)
-        with st.expander("② 중분류" + (f" · {sj}" if sj else "  (선택)"), expanded=not sj):
+    jungs = R.category_jungs(d) if d else []
+    with st.expander("② 중분류" + (f" · {sj}" if sj else "  (선택)"),
+                     expanded=bool(d and not sj)):
+        if jungs:
             _cat_buttons(jungs, f"{p}_jung", "sel_jung", clear_keys=("sel_so",))
-        jn = st.session_state.get("sel_jung")
-        sos = R.category_sos(d, jn) if jn else []
-        if jn and sos:
-            with st.expander("③ 소분류  (선택)", expanded=False):
-                _cat_buttons(["전체"] + sos, f"{p}_so", "sel_so")
+        else:
+            st.caption("← 대분류를 먼저 선택하세요")
+    jn = st.session_state.get("sel_jung")
+    sos = R.category_sos(d, jn) if (d and jn) else []
+    with st.expander("③ 소분류  (선택)", expanded=False):
+        if sos:
+            _cat_buttons(["전체"] + sos, f"{p}_so", "sel_so")
+        else:
+            st.caption("← 중분류를 먼저 선택하세요")
 
 
 def _category_picker():
