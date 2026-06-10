@@ -184,6 +184,17 @@ details {{ border-radius: 10px !important; border: 1px solid {FABRIK['border']} 
 /* 코드/키워드 칩 */
 code {{ background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']}; border-radius: 6px; padding: 1px 6px; }}
 hr {{ border-color: {FABRIK['border']}; }}
+
+/* 설치대학 테이블(지역|대학명) — 공간 절약 */
+table.univ-tb {{ width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 4px; }}
+table.univ-tb th, table.univ-tb td {{
+    border: 1px solid {FABRIK['border']}; padding: 5px 10px;
+    text-align: left; vertical-align: top;
+}}
+table.univ-tb th {{ background: {FABRIK['surface']}; font-weight: 700; }}
+table.univ-tb td.rg {{ white-space: nowrap; font-weight: 700; width: 78px;
+    color: {FABRIK['navy']}; background: {FABRIK['surface']}; }}
+table.univ-tb td a {{ color: {FABRIK['cta_dim']}; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -221,14 +232,15 @@ def _render_major_detail(r):
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
     if univ.get("univ_count", 0) > 0:
-        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳) · 지역·전형·인원  ·  대학명 클릭 시 EBSi"):
+        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳)  ·  대학명 클릭 시 EBSi"):
+            rows = []
             for region, unis in univ["by_region"].items():
-                st.markdown(f"**{region}** ({len(unis)}곳)")
-                for u in unis:
-                    jh = ", ".join(u["전형"][:4]) if u["전형"] else "전형정보 없음"
-                    cap = f" · 모집 {u['인원']}명" if u.get("인원") else ""
-                    st.markdown(f"- {univ_link(u['대학명'])} — {jh}{cap}",
-                                unsafe_allow_html=True)
+                links = ", ".join(univ_link(u["대학명"]) for u in unis)
+                rows.append(f"<tr><td class='rg'>{region}</td><td>{links}</td></tr>")
+            st.markdown(
+                "<table class='univ-tb'><thead><tr><th>지역</th><th>대학명</th>"
+                "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>",
+                unsafe_allow_html=True)
     else:
         uni = extra.get("개설대학", "")
         if uni:
