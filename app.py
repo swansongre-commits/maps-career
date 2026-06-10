@@ -15,44 +15,12 @@
           stopwords.json, compounds.json
 """
 import streamlit as st
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="진로 추천", page_icon="🎓", layout="wide")
 
-# 페이지 언어를 한국어로 명시 → 브라우저 자동 번역 제안 제거
-# (Streamlit 기본 <html lang="en">이라 한국어 내용에 번역 팝업이 뜸)
-# height=0이면 iframe이 안 떠 스크립트 미실행 → height=1로 마운트 보장.
-# window.top(최상위) 우선 + 부모 폴백, lang/translate/notranslate 모두 적용 후 재시도.
-components.html(
-    """
-<script>
-(function(){
-  function docs(){
-    var out=[]; try{ if(window.top&&window.top.document) out.push(window.top.document);}catch(e){}
-    try{ if(window.parent&&window.parent.document&&out.indexOf(window.parent.document)<0)
-          out.push(window.parent.document);}catch(e){}
-    return out;
-  }
-  function setKo(){
-    docs().forEach(function(d){
-      try{
-        d.documentElement.setAttribute('lang','ko');
-        d.documentElement.setAttribute('translate','no');
-        if(d.body) d.body.setAttribute('translate','no');
-        var h = d.head || d.getElementsByTagName('head')[0];
-        if(h && !d.querySelector('meta[name="google"][content="notranslate"]')){
-          var m=d.createElement('meta'); m.name='google'; m.content='notranslate'; h.appendChild(m);
-        }
-      }catch(e){}
-    });
-  }
-  setKo();
-  [200,600,1500,3000,6000].forEach(function(t){ setTimeout(setKo, t); });
-})();
-</script>
-""",
-    height=1,
-)
+# 참고: 크롬 자동 번역 팝업은 Streamlit Cloud에서 코드로 막기 어렵다(최초 HTML의
+# <html lang>을 제어할 수 없고, JS 주입은 컴포넌트 iframe 제약·타이밍으로 늦음).
+# 자체 호스팅으로 옮기면 <head>에 lang="ko"를 박아 영구 해결 가능. 기능엔 무관.
 
 
 @st.cache_resource
