@@ -336,6 +336,62 @@ def _cat_buttons(items, prefix, sel_key, clear_keys=()):
     return None
 
 
+def _is_mobile():
+    """User-Agent로 모바일 추정(서버측, 왕복 없음). 실패 시 데스크톱 간주."""
+    try:
+        ua = st.context.headers.get("User-Agent", "") or ""
+    except Exception:
+        ua = ""
+    return any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "iPod", "Windows Phone"))
+
+
+def _category_picker():
+    """대>중>소 분류 선택. 모바일=아코디언(세로), 데스크톱=3패널. 반환 (대,중,소)."""
+    daes = R.category_daes()
+    if _is_mobile():
+        sd = st.session_state.get("sel_dae")
+        sj = st.session_state.get("sel_jung")
+        with st.expander("① 대분류" + (f" · {sd}" if sd else "  (선택)"), expanded=not sd):
+            dae = _cat_buttons(daes, "cat_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
+        jungs = R.category_jungs(dae) if dae else []
+        jung = None
+        if dae:
+            with st.expander("② 중분류" + (f" · {sj}" if sj else "  (선택)"), expanded=not sj):
+                jung = _cat_buttons(jungs, "cat_jung", "sel_jung", clear_keys=("sel_so",))
+        sos = R.category_sos(dae, jung) if (dae and jung) else []
+        so = None
+        if dae and jung:
+            with st.expander("③ 소분류  (선택)", expanded=False):
+                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
+        return dae, jung, so
+
+    # 데스크톱 — 3패널
+    cc1, cc2, cc3 = st.columns(3)
+    with cc1:
+        st.markdown("**대분류**")
+        with st.container(height=240):
+            dae = _cat_buttons(daes, "cat_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
+    jungs = R.category_jungs(dae) if dae else []
+    with cc2:
+        st.markdown("**중분류**")
+        with st.container(height=240):
+            if jungs:
+                jung = _cat_buttons(jungs, "cat_jung", "sel_jung", clear_keys=("sel_so",))
+            else:
+                jung = None
+                st.caption("← 대분류를 먼저 선택")
+    sos = R.category_sos(dae, jung) if (dae and jung) else []
+    with cc3:
+        st.markdown("**소분류**")
+        with st.container(height=240):
+            if sos:
+                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
+            else:
+                so = None
+                st.caption("← 중분류를 선택")
+    return dae, jung, so
+
+
 def _render_major_detail(r):
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
@@ -672,31 +728,7 @@ def render_major_info_tab():
 
     # ── 분류로 찾기 (대 > 중 > 소) ──
     st.caption("분류로 찾기 — **대분류 → 중분류**까지 고르면 학과가 나타나고, 소분류를 고르면 더 좁혀집니다.")
-    cc1, cc2, cc3 = st.columns(3)
-    with cc1:
-        st.markdown("**대분류**")
-        with st.container(height=240):
-            dae = _cat_buttons(R.category_daes(), "cat_dae", "sel_dae",
-                               clear_keys=("sel_jung", "sel_so"))
-    jungs = R.category_jungs(dae) if dae else []
-    with cc2:
-        st.markdown("**중분류**")
-        with st.container(height=240):
-            if jungs:
-                jung = _cat_buttons(jungs, "cat_jung", "sel_jung",
-                                    clear_keys=("sel_so",))
-            else:
-                jung = None
-                st.caption("← 대분류를 먼저 선택")
-    sos = R.category_sos(dae, jung) if (dae and jung) else []
-    with cc3:
-        st.markdown("**소분류**")
-        with st.container(height=240):
-            if sos:
-                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
-            else:
-                so = None
-                st.caption("← 중분류를 선택")
+    dae, jung, so = _category_picker()
 
     # ── 결과 목록 ──
     if dae and jung:
