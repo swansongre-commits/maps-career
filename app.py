@@ -272,24 +272,9 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 .cp-chip {{ display: inline-block; background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']};
     border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
 
-/* 분류(대/중/소) 라디오 — 행 전체를 선택영역으로(즉각 반응 + 이미지 스타일) */
-[class*="st-key-cat_"] div[role="radiogroup"] {{
-    display: flex !important; flex-direction: column !important;
-    align-items: stretch !important; gap: 5px; width: 100%; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > * {{ width: 100% !important; align-self: stretch !important; }}
-[class*="st-key-cat_"] div[role="radiogroup"] label {{
-    width: 100% !important; box-sizing: border-box !important; margin: 0 !important;
-    padding: 9px 14px !important; display: flex !important; align-items: center;
-    border: 1px solid {FABRIK['border']} !important; border-radius: 8px !important;
-    background: #fff !important; cursor: pointer; }}
-[class*="st-key-cat_"] div[role="radiogroup"] label > div:first-child {{ display: none !important; }}
-[class*="st-key-cat_"] div[role="radiogroup"] label p {{ font-size: 0.95rem; margin: 0; }}
-[class*="st-key-cat_"] div[role="radiogroup"] label:hover {{
-    border-color: {FABRIK['cta']} !important; background: {FABRIK['cta_soft']} !important; }}
-[class*="st-key-cat_"] div[role="radiogroup"] label:has(input:checked) {{
-    background: {FABRIK['navy']} !important; border-color: {FABRIK['navy']} !important; }}
-[class*="st-key-cat_"] div[role="radiogroup"] label:has(input:checked) p {{
-    color: #fff !important; font-weight: 700; }}
+/* 분류(대/중/소)는 버튼 방식 — use_container_width로 폭 100% 보장.
+   기본 버튼 스타일(흰 행) 상속, 선택 버튼은 _cat_buttons가 네이비로 동적 강조. */
+[class*="st-key-cat_"] div[data-testid="stButton"] > button p {{ text-align: center; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -328,6 +313,27 @@ def _safe_radio(label, options, key, **kw):
     if key in st.session_state and st.session_state[key] not in options:
         del st.session_state[key]
     return st.radio(label, options, key=key, **kw)
+
+
+def _cat_buttons(items, prefix, sel_key, clear_keys=()):
+    """분류 선택(버튼, 행 전체폭). 선택값 session_state[sel_key], 선택 버튼은 네이비.
+    반환: 선택된 값(없으면 None)."""
+    for idx, it in enumerate(items):
+        if st.button(it, key=f"{prefix}_{idx}", use_container_width=True):
+            st.session_state[sel_key] = it
+            for ck in clear_keys:
+                st.session_state.pop(ck, None)
+    cur = st.session_state.get(sel_key)
+    if cur in items:
+        i = items.index(cur)
+        st.markdown(
+            f"<style>"
+            f"[class~='st-key-{prefix}_{i}'] button{{"
+            f"background:{FABRIK['navy']} !important;border-color:{FABRIK['navy']} !important;}}"
+            f"[class~='st-key-{prefix}_{i}'] button p{{color:#fff !important;font-weight:700;}}"
+            f"</style>", unsafe_allow_html=True)
+        return cur
+    return None
 
 
 def _render_major_detail(r):
@@ -670,15 +676,15 @@ def render_major_info_tab():
     with cc1:
         st.markdown("**대분류**")
         with st.container(height=240):
-            dae = _safe_radio("대분류", R.category_daes(), "cat_dae",
-                              label_visibility="collapsed", index=None)
+            dae = _cat_buttons(R.category_daes(), "cat_dae", "sel_dae",
+                               clear_keys=("sel_jung", "sel_so"))
     jungs = R.category_jungs(dae) if dae else []
     with cc2:
         st.markdown("**중분류**")
         with st.container(height=240):
             if jungs:
-                jung = _safe_radio("중분류", jungs, "cat_jung",
-                                   label_visibility="collapsed", index=None)
+                jung = _cat_buttons(jungs, "cat_jung", "sel_jung",
+                                    clear_keys=("sel_so",))
             else:
                 jung = None
                 st.caption("← 대분류를 먼저 선택")
@@ -687,8 +693,7 @@ def render_major_info_tab():
         st.markdown("**소분류**")
         with st.container(height=240):
             if sos:
-                so = _safe_radio("소분류", ["전체"] + sos, "cat_so",
-                                 label_visibility="collapsed")
+                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
             else:
                 so = None
                 st.caption("← 중분류를 선택")
