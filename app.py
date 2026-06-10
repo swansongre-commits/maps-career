@@ -58,6 +58,28 @@ def univ_link(name):
     return f'<a href="{_ebsi_url(name)}" target="_blank">{name}</a>'
 
 
+def pair_card_html(p):
+    """연계 진로 1건 → 등식 카드 HTML (📚학과 + 💼직업 = 🧭진로 · 공통 키워드)."""
+    strong = " cp-strong" if p["overlap_n"] >= 3 else ""
+    if p["overlap"]:
+        chips = "".join(f'<span class="cp-chip">{k}</span>' for k in p["overlap"])
+        kws = f'공통 키워드 <b>{p["overlap_n"]}</b>개 &nbsp; {chips}'
+    else:
+        kws = '공통 키워드 없음 (느슨한 연결)'
+    return (
+        f'<div class="cp-card{strong}">'
+        f'<div class="cp-eq">'
+        f'<span class="cp-major">📚 {p["major"]}</span>'
+        f'<span class="cp-op">+</span>'
+        f'<span class="cp-job">💼 {p["job"]}</span>'
+        f'<span class="cp-op">=</span>'
+        f'<span class="cp-result">🧭 연계 진로</span>'
+        f'</div>'
+        f'<div class="cp-kws">{kws}</div>'
+        f'</div>'
+    )
+
+
 # 추천 처리 동안 노출할 전체화면 로딩 오버레이(회전 스피너)
 LOADING_HTML = """
 <div class="maps-loading">
@@ -195,6 +217,21 @@ table.univ-tb th {{ background: {FABRIK['surface']}; font-weight: 700; }}
 table.univ-tb td.rg {{ white-space: nowrap; font-weight: 700; width: 78px;
     color: {FABRIK['navy']}; background: {FABRIK['surface']}; }}
 table.univ-tb td a {{ color: {FABRIK['cta_dim']}; }}
+
+/* 연계 진로 등식 카드(학과 + 직업 = 진로) */
+.cp-card {{ border: 1px solid {FABRIK['border']}; border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 10px; background: {FABRIK['surface2']}; }}
+.cp-card.cp-strong {{ border-left: 4px solid {FABRIK['cta']}; background: {FABRIK['cta_soft']}; }}
+.cp-eq {{ display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }}
+.cp-major, .cp-job, .cp-result {{ padding: 5px 13px; border-radius: 999px;
+    font-weight: 700; border: 1px solid {FABRIK['border']}; background: #fff; white-space: nowrap; }}
+.cp-major {{ color: {FABRIK['navy']}; }}
+.cp-job {{ color: {FABRIK['cta_dim']}; }}
+.cp-result {{ color: #fff; background: {FABRIK['cta']}; border-color: {FABRIK['cta']}; }}
+.cp-op {{ color: {FABRIK['muted']}; font-weight: 800; font-size: 1.15rem; }}
+.cp-kws {{ margin-top: 9px; color: {FABRIK['muted']}; font-size: 0.86rem; }}
+.cp-chip {{ display: inline-block; background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']};
+    border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -421,15 +458,14 @@ with TAB_REC:
                         detail_modal("job", r)
 
         st.markdown("---")
-        st.subheader("🔗 학과 ↔ 직업 연계 진로")
-        st.caption("추천 상위 학과·직업이 공유하는 키워드가 많을수록 연결이 강합니다.")
+        st.subheader("🧭 학과 + 직업 = 연계 진로")
+        st.caption("추천 학과와 직업이 **공통 키워드**로 이어질 때, 그 조합이 하나의 진로가 됩니다. "
+                   "공통 키워드가 많을수록(주황 강조) 연결이 강합니다.")
         if not out["pairs"]:
-            st.info("연계 페어를 만들 수 없어요.")
-        for p in out["pairs"]:
-            strong = "✅" if p["overlap_n"] >= 3 else ("•" if p["overlap_n"] else "·")
-            kws = ", ".join(p["overlap"]) if p["overlap"] else "(공통 키워드 없음)"
-            st.markdown(f"{strong} **{p['major']}**  →  **{p['job']}**  "
-                        f"· 공통 {p['overlap_n']}개: {kws}")
+            st.info("연계 진로를 만들 수 없어요.")
+        else:
+            st.markdown("".join(pair_card_html(p) for p in out["pairs"]),
+                        unsafe_allow_html=True)
 
 
 # %% [탭2 — 학교별 설치과목: 과목으로 찾기 / 학교로 찾기]
