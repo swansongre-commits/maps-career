@@ -273,8 +273,10 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
 
 /* 분류(대/중/소) 라디오 — 행 전체를 선택영역으로(즉각 반응 + 이미지 스타일) */
-[class*="st-key-cat_"] div[role="radiogroup"] {{ gap: 5px; width: 100%; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > * {{ width: 100% !important; }}
+[class*="st-key-cat_"] div[role="radiogroup"] {{
+    display: flex !important; flex-direction: column !important;
+    align-items: stretch !important; gap: 5px; width: 100%; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > * {{ width: 100% !important; align-self: stretch !important; }}
 [class*="st-key-cat_"] div[role="radiogroup"] label {{
     width: 100% !important; box-sizing: border-box !important; margin: 0 !important;
     padding: 9px 14px !important; display: flex !important; align-items: center;
