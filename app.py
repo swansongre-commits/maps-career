@@ -409,6 +409,25 @@ def subject_majors_modal(subject_name):
                     + (f"  ·  {m['score']}점" if sort_score else ""))
 
 
+@st.dialog("학과 상세", width="large")
+def major_info_modal(name):
+    r = R.major_by_name(name)
+    if not r:
+        st.info("학과 정보를 찾을 수 없어요.")
+        return
+    st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
+    st.markdown("**대표 키워드** — " + reason_line(r["reasons"], limit=10))
+    st.markdown("---")
+    _render_major_detail(r)
+    with st.expander("🏫 설치 고교 보기 (선택과목 개설 학교)"):
+        subj = R.subjects_of_major(r)
+        flat = [s for v in subj.values() for s in v]
+        st.caption("이 학과의 권장 선택과목이 전국 몇 개 고교에 개설돼 있는지")
+        for s in flat:
+            n = len(R.schools_offering(s))
+            st.markdown(f"- **{s}** — {n:,}개교 개설")
+
+
 # %% [헤더 · 사이드바]
 st.title("🎓 진로 추천")
 st.caption("관심사 발화로 **학과·직업**을 추천받고, **학교별 개설과목**과 **학과 정보**를 함께 탐색하세요.")
@@ -436,18 +455,13 @@ TAB_REC, TAB_SCHOOL, TAB_MAJOR = st.tabs(
 
 # %% [탭1 — 학과·직업 추천]
 with TAB_REC:
-    examples = [
-        "나는 로봇이랑 똑똑한 기계가 좋아요. 그림 그리는 건 별로예요.",
-        "그림 그리고 꾸미는 거 좋아하고 영상 만드는 것도 재밌어요.",
-        "컴퓨터로 게임 만들고 프로그램 짜는 게 좋아요.",
-        "동물이랑 식물이 좋고 자연에서 관찰하는 걸 좋아해요.",
-        "우주랑 별이 신기하고 과학실험 하는 게 재밌어요.",
-    ]
-    ex = st.radio("예시 — 클릭하면 입력창에 채워집니다", ["(직접 입력)"] + examples,
-                  index=0, horizontal=False)
-    default_text = "" if ex == "(직접 입력)" else ex
-    speech = st.text_area("관심사·하고 싶은 일을 적어주세요", value=default_text, height=120,
-                          placeholder="예) 나는 로봇이랑 우주가 좋아요. 만들고 조립하는 것도 재밌어요.")
+    EXAMPLE = "나는 로봇이랑 똑똑한 기계가 좋은데, 글쓰기는 어려워하고, 운동은 잘 못해요."
+    st.markdown("**좋아하거나 관심있고 재미있는 것**과 **싫어하거나 어려운 것**을 자유롭게 적어주세요.")
+    st.caption(f"예) {EXAMPLE}")
+    if st.button("예시로 채우기", key="fill_example"):
+        st.session_state["speech_input"] = EXAMPLE
+    speech = st.text_area("관심사·하고 싶은 일을 적어주세요", key="speech_input",
+                          height=120, placeholder=f"예) {EXAMPLE}")
     go = st.button("추천 받기", type="primary")
 
     if go:
@@ -623,31 +637,15 @@ with TAB_MAJOR:
     with qc2:
         st.button("🔍 검색", use_container_width=True, key="major_search_btn")
     flt = [n for n in names if not mq.strip() or mq.strip() in n]
-    st.caption(f"{len(flt)}개 학과 — 학과를 누르면 아래에 상세가 표시됩니다")
+    st.caption(f"{len(flt)}개 학과 — 학과를 누르면 상세가 모달로 열립니다")
 
+    if not flt:
+        st.info("검색 결과가 없어요. 다른 키워드로 검색해 보세요.")
     GRID_CAP = 60
     gcols = st.columns(2)
     for idx, nm in enumerate(flt[:GRID_CAP]):
         with gcols[idx % 2]:
             if st.button(nm, key=f"majinfo_{nm}", use_container_width=True):
-                st.session_state["major_info_sel"] = nm
+                major_info_modal(nm)
     if len(flt) > GRID_CAP:
         st.caption(f"… 외 {len(flt) - GRID_CAP}개. 검색으로 좁혀보세요.")
-
-    sel = st.session_state.get("major_info_sel")
-    if sel:
-        r = R.major_by_name(sel)
-        if r:
-            st.markdown("---")
-            st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
-            st.markdown("**대표 키워드** — " + reason_line(r["reasons"], limit=10))
-            _render_major_detail(r)
-            with st.expander("🏫 설치 고교 보기 (선택과목 개설 학교)"):
-                subj = R.subjects_of_major(r)
-                flat = [s for v in subj.values() for s in v]
-                st.caption("이 학과의 권장 선택과목이 전국 몇 개 고교에 개설돼 있는지")
-                for s in flat:
-                    n = len(R.schools_offering(s))
-                    st.markdown(f"- **{s}** — {n:,}개교 개설")
-    else:
-        st.info("학과를 검색하고 위 목록에서 누르면 상세 정보가 표시됩니다.")
