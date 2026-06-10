@@ -279,6 +279,21 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 .cp-kws {{ margin-top: 9px; color: {FABRIK['muted']}; font-size: 0.86rem; }}
 .cp-chip {{ display: inline-block; background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']};
     border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
+
+/* 분류(대/중/소) 라디오 — 행 전체를 선택영역으로(이미지 스타일) */
+[class*="st-key-cat_"] div[role="radiogroup"] {{ gap: 4px; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label {{
+    width: 100%; margin: 0; padding: 9px 14px; cursor: pointer;
+    border: 1px solid {FABRIK['border']}; border-radius: 8px;
+    background: #fff; transition: all .1s ease; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label > div:first-child {{ display: none; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label p {{ font-size: 0.95rem; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label:hover {{
+    background: {FABRIK['cta_soft']}; border-color: {FABRIK['cta']}; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label:has(input:checked) {{
+    background: {FABRIK['navy']}; border-color: {FABRIK['navy']}; }}
+[class*="st-key-cat_"] div[role="radiogroup"] > label:has(input:checked) p {{
+    color: #fff !important; font-weight: 700; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
