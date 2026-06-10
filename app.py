@@ -45,6 +45,29 @@ def _ebsi_url(name):
 def univ_link(name):
     return f'<a href="{_ebsi_url(name)}" target="_blank">{name}</a>'
 
+
+# 추천 처리 동안 노출할 전체화면 로딩 오버레이(회전 스피너)
+LOADING_HTML = """
+<div class="maps-loading">
+  <div class="maps-spinner"></div>
+  <div class="maps-loading-text">관심사를 분석해 학과·직업을 찾는 중…</div>
+</div>
+<style>
+.maps-loading {
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(255,255,255,0.78); backdrop-filter: blur(2px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.maps-spinner {
+  width: 58px; height: 58px; border-radius: 50%;
+  border: 6px solid #FFE0CF; border-top-color: #FF6A2C;
+  animation: maps-spin 0.8s linear infinite;
+}
+.maps-loading-text { margin-top: 16px; color: #1E2530; font-weight: 700; font-size: 1.0rem; }
+@keyframes maps-spin { to { transform: rotate(360deg); } }
+</style>
+"""
+
 # ── 화이트 베이스 팔레트 · 강한 CTA(비비드 오렌지) ──
 FABRIK = {
     "bg": "#FFFFFF",        # 페이지 배경(흰색)
@@ -325,8 +348,13 @@ with TAB_REC:
         if not speech.strip():
             st.warning("진로 추천에 바탕이 될 내용을 입력해 주세요.")
         else:
-            st.session_state["result"] = R.recommend(
-                speech, top_n=topn, pair_k=pair_k, use_llm=use_llm)
+            loading = st.empty()
+            loading.markdown(LOADING_HTML, unsafe_allow_html=True)
+            try:
+                st.session_state["result"] = R.recommend(
+                    speech, top_n=topn, pair_k=pair_k, use_llm=use_llm)
+            finally:
+                loading.empty()
 
     out = st.session_state.get("result")
     if not out:
