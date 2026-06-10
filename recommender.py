@@ -378,6 +378,42 @@ def major_names():
     return sorted({d["name"] for d in MAJORS})
 
 
+# ── 학과 카테고리 트리(대>중>소) — build_category.py 산출물 ──
+def _load_category():
+    p = _path("mapping_category.json")
+    if not os.path.exists(p):
+        return {}
+    return json.load(open(p, encoding="utf-8")).get("tree", {})
+
+
+CATEGORY_TREE = _load_category()
+
+
+def category_daes():
+    return sorted(CATEGORY_TREE.keys())
+
+
+def category_jungs(dae):
+    return sorted(CATEGORY_TREE.get(dae, {}).keys())
+
+
+def category_sos(dae, jung):
+    return sorted(CATEGORY_TREE.get(dae, {}).get(jung, {}).keys())
+
+
+def majors_in_category(dae, jung, so=None):
+    """(대,중[,소]) → 학과명 리스트. 소 미지정 시 그 중분류 전체 합집합."""
+    node = CATEGORY_TREE.get(dae, {}).get(jung, {})
+    if not node:
+        return []
+    if so and so in node:
+        return sorted(node[so])
+    names = set()
+    for v in node.values():
+        names.update(v)
+    return sorted(names)
+
+
 def major_by_name(name):
     """학과명 → 추천 row 형태({id, name, score, officials, reasons}) 1건(최고 점수)."""
     best = None

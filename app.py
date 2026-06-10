@@ -312,6 +312,13 @@ def _safe_select(label, options, key, disabled=False):
     return st.selectbox(label, options, key=key, disabled=disabled)
 
 
+def _safe_radio(label, options, key, **kw):
+    """계단식 라디오 — 저장값이 현재 옵션에 없으면 제거 후 생성."""
+    if key in st.session_state and st.session_state[key] not in options:
+        del st.session_state[key]
+    return st.radio(label, options, key=key, **kw)
+
+
 def _render_major_detail(r):
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
@@ -634,6 +641,8 @@ with TAB_SCHOOL:
 with TAB_MAJOR:
     st.markdown("##### 📚 학과별 정보 — 학과를 고르면 키워드·설치대학·선택과목을 보여줍니다")
     names = R.major_names()
+
+    # ── 검색 ──
     qc1, qc2 = st.columns([5, 1])
     with qc1:
         mq = st.text_input("학과명 검색", key="major_q",
@@ -641,16 +650,62 @@ with TAB_MAJOR:
                            label_visibility="collapsed")
     with qc2:
         st.button("🔍 검색", use_container_width=True, key="major_search_btn")
-    flt = [n for n in names if not mq.strip() or mq.strip() in n]
-    st.caption(f"{len(flt)}개 학과 — 학과를 누르면 상세가 모달로 열립니다")
 
-    if not flt:
-        st.info("검색 결과가 없어요. 다른 키워드로 검색해 보세요.")
-    GRID_CAP = 60
-    gcols = st.columns(2)
-    for idx, nm in enumerate(flt[:GRID_CAP]):
-        with gcols[idx % 2]:
-            if st.button(nm, key=f"majinfo_{nm}", use_container_width=True):
-                major_info_modal(nm)
-    if len(flt) > GRID_CAP:
-        st.caption(f"… 외 {len(flt) - GRID_CAP}개. 검색으로 좁혀보세요.")
+    # ── 분류로 찾기 (대 > 중 > 소) ──
+    st.caption("분류로 찾기 — **대분류 → 중분류**까지 고르면 학과가 나타나고, 소분류를 고르면 더 좁혀집니다.")
+    cc1, cc2, cc3 = st.columns(3)
+    with cc1:
+        st.markdown("**대분류**")
+        with st.container(height=200):
+            dae = _safe_radio("대분류", R.category_daes(), "cat_dae",
+                              label_visibility="collapsed", index=None)
+    jungs = R.category_jungs(dae) if dae else []
+    with cc2:
+        st.markdown("**중분류**")
+        with st.container(height=200):
+            if jungs:
+                jung = _safe_radio("중분류", jungs, "cat_jung",
+                                   label_visibility="collapsed", index=None)
+            else:
+                jung = None
+                st.caption("← 대분류를 먼저 선택")
+    sos = R.category_sos(dae, jung) if (dae and jung) else []
+    with cc3:
+        st.markdown("**소분류**")
+        with st.container(height=200):
+            if sos:
+                so = _safe_radio("소분류", ["(전체)"] + sos, "cat_so",
+                                 label_visibility="collapsed")
+            else:
+                so = None
+                st.caption("← 중분류를 선택")
+
+    # ── 결과 목록 ──
+    if dae and jung:
+        so_sel = None if (not so or so == "(전체)") else so
+        results = R.majors_in_category(dae, jung, so_sel)
+        if mq.strip():
+            results = [n for n in results if mq.strip() in n]
+        loc = f"{dae} › {jung}" + (f" › {so_sel}" if so_sel else "")
+        st.markdown(f"**📂 {loc}**  ·  {len(results)}개 학과")
+    elif mq.strip():
+        results = [n for n in names if mq.strip() in n]
+        st.markdown(f"**🔎 검색 결과**  ·  {len(results)}개 학과")
+    else:
+        results = None
+        if dae and not jung:
+            st.info("중분류까지 선택해주세요.")
+        else:
+            st.info("학과명을 검색하거나, 대분류 → 중분류를 선택하세요.")
+
+    if results is not None:
+        if not results:
+            st.info("해당하는 학과가 없어요.")
+        GRID_CAP = 60
+        gcols = st.columns(2)
+        for idx, nm in enumerate(results[:GRID_CAP]):
+            with gcols[idx % 2]:
+                if st.button(nm, key=f"majinfo_{nm}", use_container_width=True):
+                    major_info_modal(nm)
+        if len(results) > GRID_CAP:
+            st.caption(f"… 외 {len(results) - GRID_CAP}개. 검색·소분류로 좁혀보세요.")
