@@ -481,21 +481,24 @@ with TAB_REC:
         st.info("관심사를 입력하고 **추천 받기**를 누르면 결과가 여기에 표시됩니다.")
     else:
         meta = out.get("meta", {})
-        st.markdown("#### 🔑 뽑아낸 키워드")
+        st.markdown("#### 🔑 키워드")
         mode_label = "🤖 LLM 발화 이해" if meta.get("mode") == "llm" else "🔧 규칙 기반"
         st.caption(f"추출 방식: {mode_label}"
                    + (f"  ·  {meta['rationale']}" if meta.get("rationale") else ""))
         if meta.get("note"):
             st.caption("ℹ️ " + meta["note"])
         if out["tokens"]:
-            st.write(" ".join(f"`{t}`" for t in out["tokens"]))
+            st.markdown("**관심 키워드** &nbsp; "
+                        + " ".join(f"`{t}`" for t in out["tokens"]))
         else:
             st.warning("키워드를 뽑지 못했어요. 조금 더 자세히 적어보세요.")
         if out["excluded"]:
-            st.caption("제외(싫다고 한 것): "
-                       + ", ".join(f"~~{t}~~" for t in out["excluded"]))
+            st.markdown("**제외 키워드** &nbsp; "
+                        + " ".join(f"`{t}`" for t in out["excluded"]))
+            st.caption("싫어하거나 어려워하는 것은 추천에서 제외했어요.")
 
-        st.markdown("#### 🎯 추천 결과  ·  항목을 누르면 상세가 모달로 열립니다")
+        st.markdown("#### 🎯 추천 결과")
+        st.caption("추천 학과나 직업을 클릭하면 상세한 내용을 볼 수 있습니다.")
         col1, col2 = st.columns(2)
         with col1:
             with st.container(border=True):
