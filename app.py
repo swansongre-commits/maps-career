@@ -280,23 +280,7 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 .cp-chip {{ display: inline-block; background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']};
     border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
 
-/* 분류(대/중/소) 라디오 — 행 전체를 선택영역으로(이미지 스타일) */
-[class*="st-key-cat_"] div[role="radiogroup"] {{ width: 100%; gap: 4px; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label {{
-    display: flex; align-items: center; box-sizing: border-box; width: 100%;
-    margin: 0; padding: 9px 14px; cursor: pointer;
-    border: 1px solid {FABRIK['border']}; border-radius: 8px;
-    background: #fff; transition: all .1s ease; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label > div:first-child {{
-    display: none !important; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label > div {{ width: 100%; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label p {{ font-size: 0.95rem; margin: 0; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label:hover {{
-    background: {FABRIK['cta_soft']}; border-color: {FABRIK['cta']}; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label:has(input:checked) {{
-    background: {FABRIK['navy']}; border-color: {FABRIK['navy']}; }}
-[class*="st-key-cat_"] div[role="radiogroup"] > label:has(input:checked) p {{
-    color: #fff !important; font-weight: 700; }}
+/* 분류(대/중/소)는 버튼 방식 — 선택 강조는 동적 주입 CSS로 처리 */
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -335,6 +319,27 @@ def _safe_radio(label, options, key, **kw):
     if key in st.session_state and st.session_state[key] not in options:
         del st.session_state[key]
     return st.radio(label, options, key=key, **kw)
+
+
+def _cat_buttons(items, prefix, sel_key, clear_keys=()):
+    """분류 버튼 리스트(행 전체 클릭). 선택값은 session_state[sel_key].
+    선택된 버튼은 네이비로 강조(인덱스 기반 동적 CSS)."""
+    for idx, it in enumerate(items):
+        if st.button(it, key=f"{prefix}_{idx}", use_container_width=True):
+            st.session_state[sel_key] = it
+            for ck in clear_keys:
+                st.session_state.pop(ck, None)
+            st.rerun()
+    cur = st.session_state.get(sel_key)
+    if cur in items:
+        i = items.index(cur)
+        st.markdown(
+            f"<style>[class~='st-key-{prefix}_{i}'] button{{"
+            f"background:{FABRIK['navy']} !important;border-color:{FABRIK['navy']} !important;}}"
+            f"[class~='st-key-{prefix}_{i}'] button p{{color:#fff !important;font-weight:800;}}"
+            f"</style>", unsafe_allow_html=True)
+        return cur
+    return None
 
 
 def _render_major_detail(r):
@@ -674,33 +679,32 @@ with TAB_MAJOR:
     cc1, cc2, cc3 = st.columns(3)
     with cc1:
         st.markdown("**대분류**")
-        with st.container(height=200):
-            dae = _safe_radio("대분류", R.category_daes(), "cat_dae",
-                              label_visibility="collapsed", index=None)
+        with st.container(height=240):
+            dae = _cat_buttons(R.category_daes(), "cat_dae", "sel_dae",
+                               clear_keys=("sel_jung", "sel_so"))
     jungs = R.category_jungs(dae) if dae else []
     with cc2:
         st.markdown("**중분류**")
-        with st.container(height=200):
+        with st.container(height=240):
             if jungs:
-                jung = _safe_radio("중분류", jungs, "cat_jung",
-                                   label_visibility="collapsed", index=None)
+                jung = _cat_buttons(jungs, "cat_jung", "sel_jung",
+                                    clear_keys=("sel_so",))
             else:
                 jung = None
                 st.caption("← 대분류를 먼저 선택")
     sos = R.category_sos(dae, jung) if (dae and jung) else []
     with cc3:
         st.markdown("**소분류**")
-        with st.container(height=200):
+        with st.container(height=240):
             if sos:
-                so = _safe_radio("소분류", ["(전체)"] + sos, "cat_so",
-                                 label_visibility="collapsed")
+                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
             else:
                 so = None
                 st.caption("← 중분류를 선택")
 
     # ── 결과 목록 ──
     if dae and jung:
-        so_sel = None if (not so or so == "(전체)") else so
+        so_sel = None if (not so or so == "전체") else so
         results = R.majors_in_category(dae, jung, so_sel)
         if mq.strip():
             results = [n for n in results if mq.strip() in n]
