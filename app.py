@@ -242,8 +242,10 @@ div[data-testid="stDialogOverlay"] {{ background: rgba(30,37,48,0.45) !important
 details {{ border-radius: 10px !important; border: 1px solid {FABRIK['border']} !important;
           background: {FABRIK['surface2']}; }}
 
-/* 코드/키워드 칩 */
-code {{ background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']}; border-radius: 6px; padding: 1px 6px; }}
+/* 코드/키워드 칩 — Streamlit 기본 초록 스타일을 강제 덮어씀 */
+code, .stMarkdown code {{ background: #FFE7D6 !important; color: #B5350D !important;
+    font-weight: 600 !important; border: 1px solid #F7C6A4; border-radius: 6px;
+    padding: 2px 8px !important; }}
 hr {{ border-color: {FABRIK['border']}; }}
 
 /* 설치대학 테이블(지역|대학명) — 공간 절약 */
