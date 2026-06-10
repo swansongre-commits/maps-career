@@ -275,6 +275,13 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 /* 분류(대/중/소)는 버튼 방식 — use_container_width로 폭 100% 보장.
    기본 버튼 스타일(흰 행) 상속, 선택 버튼은 _cat_buttons가 네이비로 동적 강조. */
 [class*="st-key-cat_"] div[data-testid="stButton"] > button p {{ text-align: center; }}
+
+/* 분류 영역 반응형: 화면 폭 기준으로 데스크톱 패널 / 모바일 아코디언 택1 */
+[class*="st-key-catwrap_mobile"] {{ display: none; }}        /* 기본(데스크톱): 모바일판 숨김 */
+@media (max-width: 640px) {{
+    [class*="st-key-catwrap_desktop"] {{ display: none !important; }}  /* 모바일: 데스크톱판 숨김 */
+    [class*="st-key-catwrap_mobile"] {{ display: block !important; }}
+}}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -336,59 +343,70 @@ def _cat_buttons(items, prefix, sel_key, clear_keys=()):
     return None
 
 
-def _is_mobile():
-    """User-Agent로 모바일 추정(서버측, 왕복 없음). 실패 시 데스크톱 간주."""
-    try:
-        ua = st.context.headers.get("User-Agent", "") or ""
-    except Exception:
-        ua = ""
-    return any(k in ua for k in ("Mobile", "Android", "iPhone", "iPad", "iPod", "Windows Phone"))
-
-
-def _category_picker():
-    """대>중>소 분류 선택. 모바일=아코디언(세로), 데스크톱=3패널. 반환 (대,중,소)."""
-    daes = R.category_daes()
-    if _is_mobile():
-        sd = st.session_state.get("sel_dae")
-        sj = st.session_state.get("sel_jung")
-        with st.expander("① 대분류" + (f" · {sd}" if sd else "  (선택)"), expanded=not sd):
-            dae = _cat_buttons(daes, "cat_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
-        jungs = R.category_jungs(dae) if dae else []
-        jung = None
-        if dae:
-            with st.expander("② 중분류" + (f" · {sj}" if sj else "  (선택)"), expanded=not sj):
-                jung = _cat_buttons(jungs, "cat_jung", "sel_jung", clear_keys=("sel_so",))
-        sos = R.category_sos(dae, jung) if (dae and jung) else []
-        so = None
-        if dae and jung:
-            with st.expander("③ 소분류  (선택)", expanded=False):
-                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
-        return dae, jung, so
-
-    # 데스크톱 — 3패널
+def _cat_desktop_panels(daes, p):
+    """데스크톱 3패널(대/중/소). prefix p로 위젯키 구분, 선택은 sel_* 공유."""
     cc1, cc2, cc3 = st.columns(3)
     with cc1:
         st.markdown("**대분류**")
         with st.container(height=240):
-            dae = _cat_buttons(daes, "cat_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
-    jungs = R.category_jungs(dae) if dae else []
+            d = _cat_buttons(daes, f"{p}_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
     with cc2:
         st.markdown("**중분류**")
         with st.container(height=240):
+            jungs = R.category_jungs(d) if d else []
             if jungs:
-                jung = _cat_buttons(jungs, "cat_jung", "sel_jung", clear_keys=("sel_so",))
+                _cat_buttons(jungs, f"{p}_jung", "sel_jung", clear_keys=("sel_so",))
             else:
-                jung = None
                 st.caption("← 대분류를 먼저 선택")
-    sos = R.category_sos(dae, jung) if (dae and jung) else []
     with cc3:
         st.markdown("**소분류**")
         with st.container(height=240):
+            jn = st.session_state.get("sel_jung")
+            sos = R.category_sos(d, jn) if (d and jn) else []
             if sos:
-                so = _cat_buttons(["전체"] + sos, "cat_so", "sel_so")
+                _cat_buttons(["전체"] + sos, f"{p}_so", "sel_so")
             else:
-                so = None
                 st.caption("← 중분류를 선택")
+
+
+def _cat_mobile_accordion(daes, p):
+    """모바일 아코디언(대→중→소). prefix p로 위젯키 구분, 선택은 sel_* 공유."""
+    sd = st.session_state.get("sel_dae")
+    sj = st.session_state.get("sel_jung")
+    with st.expander("① 대분류" + (f" · {sd}" if sd else "  (선택)"), expanded=not sd):
+        d = _cat_buttons(daes, f"{p}_dae", "sel_dae", clear_keys=("sel_jung", "sel_so"))
+    if d:
+        jungs = R.category_jungs(d)
+        with st.expander("② 중분류" + (f" · {sj}" if sj else "  (선택)"), expanded=not sj):
+            _cat_buttons(jungs, f"{p}_jung", "sel_jung", clear_keys=("sel_so",))
+        jn = st.session_state.get("sel_jung")
+        sos = R.category_sos(d, jn) if jn else []
+        if jn and sos:
+            with st.expander("③ 소분류  (선택)", expanded=False):
+                _cat_buttons(["전체"] + sos, f"{p}_so", "sel_so")
+
+
+def _category_picker():
+    """대>중>소 분류 선택. 데스크톱 패널 + 모바일 아코디언을 둘 다 렌더하고
+    CSS 미디어쿼리로 화면 폭에 따라 하나만 노출(선택 상태 sel_*는 공유). 반환 (대,중,소)."""
+    daes = R.category_daes()
+    with st.container(key="catwrap_desktop"):
+        _cat_desktop_panels(daes, "cat")
+    with st.container(key="catwrap_mobile"):
+        _cat_mobile_accordion(daes, "catm")
+
+    # 공유 선택값 정리(현재 트리에 유효한 것만)
+    dae = st.session_state.get("sel_dae")
+    if dae not in daes:
+        dae = None
+    jung = st.session_state.get("sel_jung")
+    if not (dae and jung in R.category_jungs(dae)):
+        jung = None
+    so = st.session_state.get("sel_so")
+    if not (dae and jung):
+        so = None
+    elif so == "전체" or so not in R.category_sos(dae, jung):
+        so = None
     return dae, jung, so
 
 
