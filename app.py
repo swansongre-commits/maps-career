@@ -488,12 +488,12 @@ with TAB_REC:
         if meta.get("note"):
             st.caption("ℹ️ " + meta["note"])
         if out["tokens"]:
-            st.markdown("**관심 키워드** &nbsp; "
+            st.markdown("**추출한 키워드** &nbsp; "
                         + " ".join(f"`{t}`" for t in out["tokens"]))
         else:
-            st.warning("키워드를 뽑지 못했어요. 조금 더 자세히 적어보세요.")
+            st.warning("키워드를 추출하지 못했어요. 조금 더 자세히 적어보세요.")
         if out["excluded"]:
-            st.markdown("**제외 키워드** &nbsp; "
+            st.markdown("**제외한 키워드** &nbsp; "
                         + " ".join(f"`{t}`" for t in out["excluded"]))
             st.caption("싫어하거나 어려워하는 것은 추천에서 제외했어요.")
 
