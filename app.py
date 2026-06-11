@@ -125,27 +125,27 @@ LOADING_HTML = """
 }
 .maps-spinner {
   width: 58px; height: 58px; border-radius: 50%;
-  border: 6px solid #FFE0CF; border-top-color: #FF6A2C;
+  border: 6px solid #E4E4E4; border-top-color: #141414;
   animation: maps-spin 0.8s linear infinite;
 }
-.maps-loading-text { margin-top: 16px; color: #1E2530; font-weight: 700; font-size: 1.0rem; }
+.maps-loading-text { margin-top: 16px; color: #141414; font-weight: 700; font-size: 1.0rem; }
 @keyframes maps-spin { to { transform: rotate(360deg); } }
 </style>
 """
 
-# ── 화이트 베이스 팔레트 · 강한 CTA(비비드 오렌지) ──
+# ── 무채색(그레이스케일) 팔레트 — timeline 톤. 강조는 검정 계열만 ──
 FABRIK = {
-    "bg": "#FFFFFF",        # 페이지 배경(흰색)
-    "surface": "#F4F6F8",   # 카드/사이드바 표면(연한 그레이)
+    "bg": "#F5F5F5",        # 페이지 배경(연한 회색)
+    "surface": "#FFFFFF",   # 카드/사이드바 표면(흰색)
     "surface2": "#FFFFFF",  # 버튼/행 표면(흰색)
-    "border": "#DCE1E7",    # 보더(연한 그레이)
-    "cta": "#FF6A2C",       # 강한 CTA(비비드 오렌지)
-    "cta_dim": "#E25419",
-    "cta_soft": "#FFF1E9",  # CTA 연한 배경
-    "navy": "#2B3D6B",      # 활성 탭 글자(네이비)
-    "tabbg": "#F5F6F8",     # 비활성 탭 배경
-    "text": "#1E2530",      # 본문 텍스트(니어 블랙)
-    "muted": "#8A929C",     # 보조/비활성 텍스트
+    "border": "#E4E4E4",    # 보더(라인)
+    "cta": "#141414",       # 강조(검정)
+    "cta_dim": "#000000",
+    "cta_soft": "#EDEDED",  # 강조 연한 배경(라이트 그레이)
+    "navy": "#141414",      # 선택/활성(검정) — 무채색 통일
+    "tabbg": "#F0F0F0",     # 비활성 탭 배경
+    "text": "#141414",      # 본문 텍스트(잉크)
+    "muted": "#6B6B6B",     # 보조/비활성 텍스트
 }
 
 CSS = f"""
@@ -180,7 +180,7 @@ button[data-baseweb="tab"] {{
     margin-bottom: -1px;
 }}
 button[data-baseweb="tab"]:last-child {{ border-right: 1px solid {FABRIK['border']}; }}
-button[data-baseweb="tab"]:hover {{ color: {FABRIK['navy']}; background: #ECEFF3; }}
+button[data-baseweb="tab"]:hover {{ color: {FABRIK['navy']}; background: #F0F0F0; }}
 /* 활성 탭 — 흰 배경 + 네이비 굵은 글자 + 하단 라인 제거(본문과 연결) */
 button[data-baseweb="tab"][aria-selected="true"] {{
     color: {FABRIK['navy']};
@@ -226,17 +226,17 @@ div[role="dialog"], div[data-testid="stDialog"] > div > div {{
     border: 1px solid {FABRIK['border']} !important;
     border-top: 4px solid {FABRIK['cta']} !important;
     border-radius: 14px !important;
-    box-shadow: 0 18px 50px rgba(30,37,48,0.28) !important;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.12) !important;
 }}
-div[data-testid="stDialogOverlay"] {{ background: rgba(30,37,48,0.45) !important; }}
+div[data-testid="stDialogOverlay"] {{ background: rgba(0,0,0,0.40) !important; }}
 
 /* 아코디언 */
 details {{ border-radius: 10px !important; border: 1px solid {FABRIK['border']} !important;
           background: {FABRIK['surface2']}; }}
 
-/* 코드/키워드 칩 — Streamlit 기본 초록 스타일을 강제 덮어씀 */
-code, .stMarkdown code {{ background: #FFE7D6 !important; color: #B5350D !important;
-    font-weight: 600 !important; border: 1px solid #F7C6A4; border-radius: 6px;
+/* 코드/키워드 칩 — Streamlit 기본 초록 스타일을 강제 덮어씀(무채색) */
+code, .stMarkdown code {{ background: #EDEDED !important; color: #141414 !important;
+    font-weight: 600 !important; border: 1px solid #D6D6D6; border-radius: 6px;
     padding: 2px 8px !important; }}
 hr {{ border-color: {FABRIK['border']}; }}
 
