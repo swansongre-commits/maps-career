@@ -282,6 +282,20 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     [class*="st-key-catwrap_desktop"] {{ display: none !important; }}  /* 모바일: 데스크톱판 숨김 */
     [class*="st-key-catwrap_mobile"] {{ display: block !important; }}
 }}
+
+/* 탐색 패널 설치고교 테이블(시도|시군구|학교명 버튼) */
+[class*="st-key-xsubtbl"] div[data-testid="stHorizontalBlock"] {{
+    border-bottom: 1px solid {FABRIK['border']}; padding: 3px 0; gap: 10px;
+    align-items: center; }}
+[class*="st-key-xsubtbl"] div[data-testid="stHorizontalBlock"]:first-of-type {{
+    background: {FABRIK['surface']}; border-top: 2px solid {FABRIK['cta']};
+    border-bottom: 1px solid {FABRIK['border']}; }}
+[class*="st-key-xsubtbl"] [data-testid="stMarkdownContainer"] p {{
+    margin: 0; font-size: 0.92rem; color: {FABRIK['muted']}; font-weight: 600; }}
+[class*="st-key-xsubtbl"] div[data-testid="stButton"] > button {{
+    border: none; background: transparent; padding: 6px 8px; min-height: 34px; }}
+[class*="st-key-xsubtbl"] div[data-testid="stButton"] > button:hover {{
+    background: {FABRIK['cta_soft']}; transform: none; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -527,15 +541,26 @@ def _xview_major(name):
 def _xview_subject(name):
     st.markdown(f"### 📘 {name}  ·  설치 고교")
     schools = R.schools_offering(name)
-    st.caption(f"전국 {len(schools):,}개교 개설 — 학교를 누르면 그 학교 개설과목을 봅니다")
+    st.caption(f"전국 {len(schools):,}개교 개설 — 학교명을 누르면 그 학교 개설과목을 봅니다")
     sido = _safe_select("시도 필터", ["전체"] + R.school_sidos(), "xsub_sido")
     fil = [o for o in schools if sido == "전체" or o["sido"] == sido]
     st.caption(f"{len(fil):,}개교")
     CAP = 60
-    for i, o in enumerate(fil[:CAP]):
-        if st.button(f"{o['sido']} {o['gugun']} · {o['school']}",
-                     key=f"xsch_{i}", use_container_width=True):
-            _xgo(("school", o["shl_idf_cd"], o["school"]))
+    with st.container(key="xsubtbl"):
+        hd = st.columns([1.4, 1.2, 3.4])
+        for col, t in zip(hd, ("시도", "시군구", "학교명")):
+            col.markdown(f"**{t}**")
+        prev_sido = prev_gug = None
+        for i, o in enumerate(fil[:CAP]):
+            c = st.columns([1.4, 1.2, 3.4])
+            # 같은 시도/시군구는 첫 행에만 표기(행 병합 효과)
+            c[0].markdown(o["sido"] if o["sido"] != prev_sido else "")
+            c[1].markdown(o["gugun"]
+                          if (o["gugun"] != prev_gug or o["sido"] != prev_sido) else "")
+            with c[2]:
+                if st.button(o["school"], key=f"xsch_{i}", use_container_width=True):
+                    _xgo(("school", o["shl_idf_cd"], o["school"]))
+            prev_sido, prev_gug = o["sido"], o["gugun"]
     if len(fil) > CAP:
         st.caption(f"… 외 {len(fil) - CAP:,}개교. 시도 필터로 좁혀보세요.")
 
