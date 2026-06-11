@@ -283,6 +283,23 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     [class*="st-key-catwrap_mobile"] {{ display: block !important; }}
 }}
 
+/* 과목 설치고교 단순 테이블(…schtbl) — 촘촘한 행, 학교명은 링크형 텍스트 */
+[class*="schtbl"] div[data-testid="stVerticalBlock"] {{ gap: 0 !important; }}
+[class*="schtbl"] div[data-testid="stHorizontalBlock"] {{
+    gap: 8px; align-items: center; margin: 0;
+    border-bottom: 1px solid {FABRIK['border']}; }}
+[class*="schtbl"] div[data-testid="stHorizontalBlock"]:first-of-type {{
+    border-top: 2px solid {FABRIK['text']}; background: {FABRIK['surface']}; }}
+[class*="schtbl"] [data-testid="stMarkdownContainer"] p {{
+    margin: 4px 0; font-size: 0.9rem; color: {FABRIK['muted']}; }}
+[class*="schtbl"] div[data-testid="stButton"] > button {{
+    background: transparent !important; border: none !important;
+    min-height: 24px; padding: 2px 4px; box-shadow: none; }}
+[class*="schtbl"] div[data-testid="stButton"] > button:hover {{
+    background: {FABRIK['cta_soft']} !important; transform: none; }}
+[class*="schtbl"] div[data-testid="stButton"] > button p {{
+    text-align: left; font-size: 0.92rem; color: {FABRIK['text']};
+    text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -502,6 +519,44 @@ def _xclose():
     st.rerun()
 
 
+def _subject_school_table(subject, prefix):
+    """과목 설치 고교 — 단순 테이블(시도|시군구|학교명). 학교명은 링크형 텍스트,
+    클릭 시 그 학교 개설과목으로 이동. prefix로 위젯키 구분."""
+    schools = R.schools_offering(subject)
+    st.caption(f"전국 {len(schools):,}개교 개설 — 학교명을 누르면 그 학교 개설과목을 봅니다")
+    fc1, fc2 = st.columns(2)
+    with fc1:
+        sido = _safe_select("시도", ["전체"] + R.school_sidos(), f"{prefix}_sido")
+    guguns = R.school_guguns(sido) if sido != "전체" else []
+    with fc2:
+        gugun = _safe_select("시군구", ["전체"] + guguns, f"{prefix}_gugun",
+                             disabled=not guguns)
+    fil = [o for o in schools
+           if (sido == "전체" or o["sido"] == sido)
+           and (not guguns or gugun == "전체" or o["gugun"] == gugun)]
+    st.caption(f"{len(fil):,}개교")
+    if not fil:
+        st.info("해당 지역에 개설 학교가 없어요.")
+        return
+    CAP = 40
+    with st.container(key=f"{prefix}schtbl"):
+        hd = st.columns([1.3, 1.1, 3.2])
+        for col, t in zip(hd, ("시도", "시군구", "학교명")):
+            col.markdown(f"**{t}**")
+        prev_s = prev_g = None
+        for i, o in enumerate(fil[:CAP]):
+            c = st.columns([1.3, 1.1, 3.2])
+            c[0].markdown(o["sido"] if o["sido"] != prev_s else "&nbsp;")
+            c[1].markdown(o["gugun"]
+                          if (o["gugun"] != prev_g or o["sido"] != prev_s) else "&nbsp;")
+            with c[2]:
+                if st.button(o["school"], key=f"{prefix}_sch_{i}"):
+                    _xgo(("school", o["shl_idf_cd"], o["school"]))
+            prev_s, prev_g = o["sido"], o["gugun"]
+    if len(fil) > CAP:
+        st.caption(f"… 외 {len(fil) - CAP:,}개교. 시도·시군구 필터로 좁혀보세요.")
+
+
 def _xview_major(name):
     r = R.major_by_name(name)
     if not r:
@@ -513,12 +568,29 @@ def _xview_major(name):
     subj = R.subjects_of_major(r)
     flat = [s for typ in ("일반", "진로", "융합") for s in subj[typ]]
     if flat:
-        st.markdown(f"**📘 2022 선택과목 ({len(flat)})** — 과목을 누르면 설치 고교를 봅니다")
-        cols = st.columns(3)
-        for i, s in enumerate(flat):
-            with cols[i % 3]:
-                if st.button(s, key=f"xmajsub_{i}", use_container_width=True):
-                    _xgo(("subject", s))
+        # 과목 버튼 + 선택 과목의 설치 고교를 같은 박스 안에(하나의 영역)
+        with st.container(border=True):
+            st.markdown(f"**📘 2022 선택과목 ({len(flat)})** — 과목을 누르면 바로 아래에 설치 고교가 표시됩니다")
+            cur = st.session_state.get("xmaj_sub")
+            cur_subj = cur[1] if (isinstance(cur, tuple) and cur[0] == r["name"]) else None
+            cols = st.columns(3)
+            for i, s in enumerate(flat):
+                with cols[i % 3]:
+                    if st.button(s, key=f"xmajsub_{i}", use_container_width=True):
+                        # 같은 과목 재클릭 시 접기
+                        st.session_state["xmaj_sub"] = (
+                            None if cur_subj == s else (r["name"], s))
+            cur = st.session_state.get("xmaj_sub")
+            cur_subj = cur[1] if (isinstance(cur, tuple) and cur[0] == r["name"]) else None
+            if cur_subj in flat:
+                i = flat.index(cur_subj)
+                st.markdown(
+                    f"<style>[class~='st-key-xmajsub_{i}'] button{{"
+                    f"background:{FABRIK['navy']} !important;border-color:{FABRIK['navy']} !important;}}"
+                    f"[class~='st-key-xmajsub_{i}'] button p{{color:#fff !important;font-weight:700;}}"
+                    f"</style>", unsafe_allow_html=True)
+                st.markdown(f"##### 📘 {cur_subj} · 설치 고교")
+                _subject_school_table(cur_subj, "xmaj")
     rel = R.major_extra(r).get("관련직업", "")
     if rel:
         with st.expander("💼 관련 직업"):
@@ -526,26 +598,8 @@ def _xview_major(name):
 
 
 def _xview_subject(name):
-    import pandas as pd
     st.markdown(f"### 📘 {name}  ·  설치 고교")
-    schools = R.schools_offering(name)
-    st.caption(f"전국 {len(schools):,}개교 개설 — 표에서 학교 행을 누르면 그 학교 개설과목을 봅니다")
-    sido = _safe_select("시도 필터", ["전체"] + R.school_sidos(), "xsub_sido")
-    fil = [o for o in schools if sido == "전체" or o["sido"] == sido]
-    st.caption(f"{len(fil):,}개교")
-    if not fil:
-        st.info("해당 지역에 개설 학교가 없어요.")
-        return
-    df = pd.DataFrame(fil)[["sido", "gugun", "school"]].rename(
-        columns={"sido": "시도", "gugun": "시군구", "school": "학교명"})
-    ev = st.dataframe(df, hide_index=True, width="stretch",
-                      height=min(560, 38 + 35 * len(df)),
-                      on_select="rerun", selection_mode="single-row", key="xsub_df")
-    rows = ev.selection.rows if ev and ev.selection else []
-    if rows:
-        o = fil[rows[0]]
-        st.session_state.pop("xsub_df", None)  # 선택 초기화(복귀 시 재이동 방지)
-        _xgo(("school", o["shl_idf_cd"], o["school"]))
+    _subject_school_table(name, "xsub")
 
 
 def _xview_school(sid, name):
