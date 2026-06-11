@@ -454,6 +454,161 @@ def _render_major_detail(r):
             st.markdown(", ".join(jobs))
 
 
+def _render_univ_block(r):
+    """설치대학 expander(대학명 EBSi 링크) — 상세·탐색기 공용."""
+    extra = R.major_extra(r)
+    univ = extra.get("설치대학", {})
+    if univ.get("univ_count", 0) > 0:
+        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳)  ·  대학명 클릭 시 EBSi"):
+            rows = []
+            for region, unis in univ["by_region"].items():
+                links = ", ".join(univ_link(u["대학명"]) for u in unis)
+                rows.append(f"<tr><td class='rg'>{region}</td><td>{links}</td></tr>")
+            st.markdown("<table class='univ-tb'><thead><tr><th>지역</th><th>대학명</th>"
+                        "</tr></thead><tbody>" + "".join(rows) + "</tbody></table>",
+                        unsafe_allow_html=True)
+    else:
+        uni = extra.get("개설대학", "")
+        if uni:
+            by_region, total = parse_universities_legacy(uni)
+            with st.expander(f"🏛️ 개설대학 ({total}곳)  ·  대학명 클릭 시 EBSi"):
+                for region, unis in list(by_region.items())[:8]:
+                    links = ", ".join(univ_link(u) for u in sorted(set(unis))[:6])
+                    st.markdown(f"- **{region}**: {links}", unsafe_allow_html=True)
+
+
+# ── 탐색기: 과목 ↔ 학교 ↔ 학과 무한 탐색 (단일 모달 + 네비 스택, reopen 패턴) ──
+def _xopen(view):
+    st.session_state["xstack"] = [view]
+    st.rerun()
+
+
+def _xgo(view):
+    st.session_state["xstack"] = st.session_state.get("xstack", []) + [view]
+    st.rerun()
+
+
+def _xback():
+    s = st.session_state.get("xstack", [])
+    if len(s) > 1:
+        s.pop()
+    st.session_state["xstack"] = s
+    st.rerun()
+
+
+def _xclose():
+    st.session_state["xstack"] = []
+    st.rerun()
+
+
+def _xview_major(name):
+    r = R.major_by_name(name)
+    if not r:
+        st.info("학과 정보를 찾을 수 없어요.")
+        return
+    st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
+    st.markdown("**대표 키워드** — " + reason_line(r["reasons"], limit=10))
+    _render_univ_block(r)
+    subj = R.subjects_of_major(r)
+    flat = [s for typ in ("일반", "진로", "융합") for s in subj[typ]]
+    if flat:
+        st.markdown(f"**📘 2022 선택과목 ({len(flat)})** — 과목을 누르면 설치 고교를 봅니다")
+        cols = st.columns(3)
+        for i, s in enumerate(flat):
+            with cols[i % 3]:
+                if st.button(s, key=f"xmajsub_{i}", use_container_width=True):
+                    _xgo(("subject", s))
+    rel = R.major_extra(r).get("관련직업", "")
+    if rel:
+        with st.expander("💼 관련 직업"):
+            st.markdown(", ".join(R.split_related_jobs(rel)))
+
+
+def _xview_subject(name):
+    st.markdown(f"### 📘 {name}  ·  설치 고교")
+    schools = R.schools_offering(name)
+    st.caption(f"전국 {len(schools):,}개교 개설 — 학교를 누르면 그 학교 개설과목을 봅니다")
+    sido = _safe_select("시도 필터", ["전체"] + R.school_sidos(), "xsub_sido")
+    fil = [o for o in schools if sido == "전체" or o["sido"] == sido]
+    st.caption(f"{len(fil):,}개교")
+    CAP = 60
+    for i, o in enumerate(fil[:CAP]):
+        if st.button(f"{o['sido']} {o['gugun']} · {o['school']}",
+                     key=f"xsch_{i}", use_container_width=True):
+            _xgo(("school", o["shl_idf_cd"], o["school"]))
+    if len(fil) > CAP:
+        st.caption(f"… 외 {len(fil) - CAP:,}개교. 시도 필터로 좁혀보세요.")
+
+
+def _xview_school(sid, name):
+    info = R.school_subjects(sid)
+    st.markdown(f"### 🏫 {info['school']}  ·  {info['sido']} {info['gugun']}")
+    st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다")
+    gidx = 0
+    for typ in ("일반", "진로", "융합"):
+        subs = info["by_type"][typ]
+        if not subs:
+            continue
+        st.markdown(f"**{typ} 선택 ({len(subs)})**")
+        cols = st.columns(3)
+        for k, s in enumerate(subs):
+            with cols[k % 3]:
+                if st.button(s, key=f"xschsub_{gidx}", use_container_width=True):
+                    _xgo(("subject", s))
+            gidx += 1
+
+
+def _xview_job(name):
+    extra = R.job_extra({"id": "", "name": name})
+    st.markdown(f"### 💼 {name}")
+    rel = extra.get("관련학과", "")
+    if rel:
+        majors = R.split_related_majors(rel)
+        st.markdown(f"**📚 관련 학과 ({len(majors)})** — 학과를 누르면 상세를 봅니다")
+        cols = st.columns(2)
+        for i, m in enumerate(majors):
+            with cols[i % 2]:
+                if st.button(m, key=f"xjobmaj_{i}", use_container_width=True):
+                    _xgo(("major", m))
+    cert = extra.get("관련자격", "")
+    if cert:
+        certs = [c.strip() for c in cert.replace("·", ",").split(",") if c.strip()]
+        with st.expander(f"📜 관련 자격 ({len(certs)})"):
+            st.markdown(", ".join(certs))
+
+
+def _xcrumb(v):
+    return {"major": "📚 ", "subject": "📘 ", "school": "🏫 ",
+            "job": "💼 "}.get(v[0], "") + (v[2] if v[0] == "school" else v[1])
+
+
+def render_explorer():
+    """과목↔학교↔학과↔직업 탐색 — 하단 인라인 패널(모달 아님). 네비 스택 기반."""
+    stack = st.session_state.get("xstack", [])
+    if not stack:
+        return
+    st.markdown("---")
+    with st.container(border=True):
+        st.markdown("#### 🔎 탐색")
+        st.caption("경로: " + "  ›  ".join(_xcrumb(v) for v in stack))
+        c1, c2, _ = st.columns([1, 1, 4])
+        with c1:
+            if len(stack) > 1 and st.button("← 뒤로", use_container_width=True, key="x_back"):
+                _xback()
+        with c2:
+            if st.button("✕ 닫기", use_container_width=True, key="x_close"):
+                _xclose()
+        top = stack[-1]
+        if top[0] == "major":
+            _xview_major(top[1])
+        elif top[0] == "subject":
+            _xview_subject(top[1])
+        elif top[0] == "school":
+            _xview_school(top[1], top[2])
+        elif top[0] == "job":
+            _xview_job(top[1])
+
+
 def _render_school_detail(r):
     """학교 상세 — 개설과목(유형별), 각 과목 클릭 시 연관 학과 모달."""
     info = R.school_subjects(r["shl_idf_cd"])
@@ -470,7 +625,7 @@ def _render_school_detail(r):
             with cols[k % 3]:
                 if st.button(s, key=f"schsub_{r['shl_idf_cd']}_{typ}_{s}",
                              use_container_width=True):
-                    subject_majors_modal(s)
+                    _xopen(("subject", s))
 
 
 def _render_job_detail(r):
@@ -613,7 +768,7 @@ with TAB_REC:
                 for i, r in enumerate(out["majors"], 1):
                     if st.button(f"{i}.  {r['name']}　·　{r['score']}점",
                                  key=f"maj_{i}", use_container_width=True):
-                        detail_modal("major", r)
+                        _xopen(("major", r["name"]))
         with col2:
             with st.container(border=True):
                 st.subheader("💼 추천 직업")
@@ -622,7 +777,7 @@ with TAB_REC:
                 for i, r in enumerate(out["jobs"], 1):
                     if st.button(f"{i}.  {r['name']}　·　{r['score']}점",
                                  key=f"job_{i}", use_container_width=True):
-                        detail_modal("job", r)
+                        _xopen(("job", r["name"]))
 
         st.markdown("---")
         st.subheader("🧭 추천 진로")
@@ -779,10 +934,14 @@ def render_major_info_tab():
         for idx, nm in enumerate(results[:GRID_CAP]):
             with gcols[idx % 2]:
                 if st.button(nm, key=f"majinfo_{nm}", use_container_width=True):
-                    major_info_modal(nm)
+                    _xopen(("major", nm))
         if len(results) > GRID_CAP:
             st.caption(f"… 외 {len(results) - GRID_CAP}개. 검색·소분류로 좁혀보세요.")
 
 
 with TAB_MAJOR:
     render_major_info_tab()
+
+
+# ── 탐색 패널(하단 인라인) — 어느 탭에서 진입하든 페이지 하단에 펼쳐짐 ──
+render_explorer()
