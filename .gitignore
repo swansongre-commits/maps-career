@@ -23,3 +23,11 @@ __pycache__/
 st_out.log
 st_err.log
 _inspect.json
+
+# 내부 보고서 - 공개 저장소 커밋 금지
+MAPS_제안보고서.docx
+MAPS_제안보고서.pdf
+SERVICE_REVIEW.md
+
+# 비밀키/임시 메모 - 절대 커밋 금지 (API 키 평문 포함)
+gpt.txt

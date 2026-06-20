@@ -133,19 +133,24 @@ LOADING_HTML = """
 </style>
 """
 
-# ── 무채색(그레이스케일) 팔레트 — timeline 톤. 강조는 검정 계열만 ──
+# ── 무채색 에디토리얼 팔레트 — timeline DESIGN_GUIDE 토큰과 정렬 ──
+# 원칙: 흰 배경·무채색·1px 라인·8px/999px 라운드·강조는 색이 아니라 잉크 반전.
 FABRIK = {
-    "bg": "#F5F5F5",        # 페이지 배경(연한 회색)
-    "surface": "#FFFFFF",   # 카드/사이드바 표면(흰색)
-    "surface2": "#FFFFFF",  # 버튼/행 표면(흰색)
-    "border": "#E4E4E4",    # 보더(라인)
-    "cta": "#141414",       # 강조(검정)
+    "bg": "#F5F5F5",            # 페이지 배경(연한 회색) = --bg
+    "surface": "#FFFFFF",       # 카드/사이드바 표면 = --surface
+    "surface2": "#FFFFFF",      # 버튼/행 표면(흰색)
+    "surface_soft": "#F0F0F0",  # 칩·hover 약한 표면 = --surface-soft
+    "border": "#E4E4E4",        # 기본 보더 = --line
+    "line_strong": "#C9C9C9",   # 강한 보더(버튼·인풋) = --line-strong
+    "cta": "#141414",           # 강조 = 잉크 = --ink/--accent
     "cta_dim": "#000000",
-    "cta_soft": "#EDEDED",  # 강조 연한 배경(라이트 그레이)
-    "navy": "#141414",      # 선택/활성(검정) — 무채색 통일
-    "tabbg": "#F0F0F0",     # 비활성 탭 배경
-    "text": "#141414",      # 본문 텍스트(잉크)
-    "muted": "#6B6B6B",     # 보조/비활성 텍스트
+    "cta_soft": "#EDEDED",      # 활성 카드 배경 = --accent-soft
+    "navy": "#141414",          # 선택/활성(검정) — 무채색 통일
+    "tabbg": "#F0F0F0",         # 비활성 탭 배경 = --surface-soft
+    "text": "#141414",          # 본문 텍스트(잉크) = --ink
+    "ink_mid": "#3F3F3F",       # 중간 농도 텍스트(배지) = --ink-mid
+    "muted": "#6B6B6B",         # 보조/라벨 텍스트 = --muted
+    "soft": "#9A9A9A",          # 더 약한 텍스트/아이콘 = --soft
 }
 
 CSS = f"""
@@ -154,14 +159,15 @@ CSS = f"""
 h1, h2, h3, h4, h5, h6 {{ color: {FABRIK['text']}; letter-spacing: -0.2px; }}
 section[data-testid="stSidebar"] {{ background: {FABRIK['surface']}; border-right: 1px solid {FABRIK['border']}; }}
 
-/* 결과 칼럼(테두리 컨테이너) */
+/* 결과 칼럼(테두리 컨테이너) — 8px 라운드 통일, 은은한 패널 그림자 */
 div[data-testid="stVerticalBlockBorderWrapper"] {{
     background: {FABRIK['surface']};
     border: 1px solid {FABRIK['border']} !important;
-    border-radius: 14px;
+    border-radius: 8px;
+    box-shadow: 0 8px 26px rgba(28,35,31,0.05);
 }}
 
-/* ── 탭 헤더: 셀형(EBSi 스타일) · 활성=흰배경 네이비 굵게 / 비활성=회색 ── */
+/* ── 탭 = 세그먼트 컨트롤. 강조=반전: 활성 탭만 잉크 배경+흰 글씨 ── */
 div[data-baseweb="tab-list"] {{
     gap: 0;
     border-bottom: 1px solid {FABRIK['border']};
@@ -171,39 +177,40 @@ button[data-baseweb="tab"] {{
     justify-content: center;
     text-align: center;
     color: {FABRIK['muted']};
-    background: {FABRIK['tabbg']};
-    border: 1px solid {FABRIK['border']};
+    background: {FABRIK['surface_soft']};
+    border: 1px solid {FABRIK['line_strong']};
     border-right: none;
     border-radius: 0;
     padding: 0.75rem 0;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: -1px;
 }}
-button[data-baseweb="tab"]:last-child {{ border-right: 1px solid {FABRIK['border']}; }}
-button[data-baseweb="tab"]:hover {{ color: {FABRIK['navy']}; background: #F0F0F0; }}
-/* 활성 탭 — 흰 배경 + 네이비 굵은 글자 + 하단 라인 제거(본문과 연결) */
+button[data-baseweb="tab"]:last-child {{ border-right: 1px solid {FABRIK['line_strong']}; }}
+button[data-baseweb="tab"]:hover {{ color: {FABRIK['ink_mid']}; background: {FABRIK['surface_soft']}; }}
+/* 활성 탭 — 잉크 반전(검정 배경 + 흰 글씨) */
 button[data-baseweb="tab"][aria-selected="true"] {{
-    color: {FABRIK['navy']};
-    background: {FABRIK['bg']};
-    border-bottom: 1px solid {FABRIK['bg']};
+    color: #FFFFFF;
+    background: {FABRIK['cta']};
+    border-color: {FABRIK['cta']};
     font-weight: 800;
 }}
-button[data-baseweb="tab"][aria-selected="true"] p {{ font-weight: 800; color: {FABRIK['navy']}; font-size: 1.02rem; }}
+button[data-baseweb="tab"][aria-selected="true"] p {{ font-weight: 800; color: #FFFFFF; font-size: 1.02rem; }}
 div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {{ background-color: transparent; }}
 
-/* 추천 항목 버튼 = 한 줄 리스트 행 */
+/* 버튼 = 외곽선 위계. 라운드 8px·강한 보더·hover 시 외곽 진해짐 */
 div[data-testid="stButton"] > button {{
     width: 100%;
+    min-height: 38px;
     text-align: left;
     background: {FABRIK['surface2']};
     color: {FABRIK['text']};
-    border: 1px solid {FABRIK['border']};
-    border-radius: 10px;
-    padding: 0.55rem 0.85rem;
-    font-weight: 600;
+    border: 1px solid {FABRIK['line_strong']};
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-weight: 700;
     transition: all .12s ease;
 }}
-div[data-testid="stButton"] > button p {{ text-align: left; margin: 0; }}
+div[data-testid="stButton"] > button p {{ text-align: left; margin: 0; font-weight: 700; }}
 div[data-testid="stButton"] > button:hover {{
     border-color: {FABRIK['cta']};
     background: {FABRIK['cta_soft']};
@@ -221,24 +228,31 @@ div[data-testid="stButton"] > button[kind="primary"] {{
 div[data-testid="stButton"] > button[kind="primary"] p {{ text-align: center; color: #FFFFFF; }}
 div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: {FABRIK['cta_dim']}; }}
 
-/* 모달(dialog) — 흰 배경 위에서 떠 보이게 그림자·CTA 라인 */
+/* 모달(dialog) — 8px 라운드 + 잉크 상단 라인 + 떠있는 표면 그림자 */
 div[role="dialog"], div[data-testid="stDialog"] > div > div {{
     border: 1px solid {FABRIK['border']} !important;
     border-top: 4px solid {FABRIK['cta']} !important;
-    border-radius: 14px !important;
-    box-shadow: 0 18px 60px rgba(0,0,0,0.12) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.07) !important;
 }}
-div[data-testid="stDialogOverlay"] {{ background: rgba(0,0,0,0.40) !important; }}
+div[data-testid="stDialogOverlay"] {{ background: rgba(20,24,22,0.34) !important; }}
 
-/* 아코디언 */
-details {{ border-radius: 10px !important; border: 1px solid {FABRIK['border']} !important;
+/* 아코디언 — 8px 통일 */
+details {{ border-radius: 8px !important; border: 1px solid {FABRIK['border']} !important;
           background: {FABRIK['surface2']}; }}
 
-/* 코드/키워드 칩 — Streamlit 기본 초록 스타일을 강제 덮어씀(무채색) */
-code, .stMarkdown code {{ background: #EDEDED !important; color: #141414 !important;
-    font-weight: 600 !important; border: 1px solid #D6D6D6; border-radius: 6px;
-    padding: 2px 8px !important; }}
+/* 코드/키워드 칩 — 무채색 알약형(999px) */
+code, .stMarkdown code {{ background: {FABRIK['surface_soft']} !important; color: {FABRIK['text']} !important;
+    font-weight: 750 !important; border: 1px solid {FABRIK['border']}; border-radius: 999px;
+    padding: 3px 10px !important; }}
 hr {{ border-color: {FABRIK['border']}; }}
+
+/* 입력/드롭다운 — 8px 라운드, focus 시 잉크 외곽 */
+div[data-baseweb="input"], div[data-baseweb="select"] > div,
+div[data-baseweb="textarea"], .stTextInput div[data-baseweb="base-input"] {{
+    border-radius: 8px !important; }}
+div[data-baseweb="input"]:focus-within, div[data-baseweb="select"] > div:focus-within,
+div[data-baseweb="textarea"]:focus-within {{ border-color: {FABRIK['cta']} !important; }}
 
 /* 설치대학 테이블(지역|대학명) — 공간 절약 */
 table.univ-tb {{ width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 4px; }}
@@ -251,13 +265,27 @@ table.univ-tb td.rg {{ white-space: nowrap; font-weight: 700; width: 78px;
     color: {FABRIK['navy']}; background: {FABRIK['surface']}; }}
 table.univ-tb td.nw {{ white-space: nowrap; color: {FABRIK['muted']}; font-weight: 600; }}
 table.univ-tb td a {{ color: {FABRIK['cta_dim']}; }}
+/* 대표 키워드 그리드(kw-grid): 데스크톱 4열·모바일 2열, 칸=순위·키워드·점수 */
+.kw-grid {{ display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 6px; margin: 4px 0 2px; }}
+@media (max-width: 640px) {{ .kw-grid {{ grid-template-columns: repeat(2, 1fr); }} }}
+.kw-cell {{ display: flex; align-items: center; gap: 6px;
+    border: 1px solid {FABRIK['border']}; border-radius: 8px;
+    background: {FABRIK['surface2']}; padding: 5px 9px; font-size: 0.84rem;
+    overflow: hidden; }}
+.kw-cell .kw-rank {{ color: {FABRIK['muted']}; font-weight: 700;
+    font-size: 0.74rem; min-width: 26px; flex: none; }}
+.kw-cell .kw-term {{ color: {FABRIK['text']}; font-weight: 750;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+.kw-cell .kw-pts {{ margin-left: auto; color: {FABRIK['muted']};
+    font-weight: 600; font-size: 0.76rem; flex: none; }}
 /* 설치학교 그룹 병합 셀(시도/시군구) + 시도 경계 굵은선 */
 table.univ-tb td.grp {{ white-space: nowrap; font-weight: 700; color: {FABRIK['navy']};
     background: {FABRIK['surface']}; vertical-align: middle; text-align: center; }}
 table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 
 /* 연계 진로 등식 카드(학과 + 직업 = 진로) */
-.cp-card {{ border: 1px solid {FABRIK['border']}; border-radius: 12px;
+.cp-card {{ border: 1px solid {FABRIK['border']}; border-radius: 8px;
     padding: 12px 16px; margin-bottom: 10px; background: {FABRIK['surface2']}; }}
 .cp-card.cp-strong {{ border-left: 4px solid {FABRIK['cta']}; background: {FABRIK['cta_soft']}; }}
 .cp-eq {{ display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }}
@@ -269,8 +297,9 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 .cp-name {{ font-weight: 700; color: {FABRIK['text']}; }}
 .cp-gt {{ color: {FABRIK['muted']}; font-weight: 800; font-size: 1.1rem; margin: 0 5px; }}
 .cp-kws {{ margin-top: 9px; color: {FABRIK['muted']}; font-size: 0.86rem; }}
-.cp-chip {{ display: inline-block; background: {FABRIK['cta']}1A; color: {FABRIK['cta_dim']};
-    border-radius: 6px; padding: 1px 8px; margin: 2px 3px 0 0; font-weight: 600; }}
+.cp-chip {{ display: inline-block; background: {FABRIK['surface_soft']}; color: {FABRIK['ink_mid']};
+    border: 1px solid {FABRIK['border']}; border-radius: 999px; padding: 2px 9px;
+    margin: 2px 3px 0 0; font-weight: 750; font-size: 0.78rem; }}
 
 /* 분류(대/중/소)는 버튼 방식 — use_container_width로 폭 100% 보장.
    기본 버튼 스타일(흰 행) 상속, 선택 버튼은 _cat_buttons가 네이비로 동적 강조. */
@@ -283,23 +312,59 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     [class*="st-key-catwrap_mobile"] {{ display: block !important; }}
 }}
 
-/* 과목 설치고교 단순 테이블(…schtbl) — 촘촘한 행, 학교명은 링크형 텍스트 */
-[class*="schtbl"] div[data-testid="stVerticalBlock"] {{ gap: 0 !important; }}
-[class*="schtbl"] div[data-testid="stHorizontalBlock"] {{
-    gap: 8px; align-items: center; margin: 0;
-    border-bottom: 1px solid {FABRIK['border']}; }}
-[class*="schtbl"] div[data-testid="stHorizontalBlock"]:first-of-type {{
-    border-top: 2px solid {FABRIK['text']}; background: {FABRIK['surface']}; }}
-[class*="schtbl"] [data-testid="stMarkdownContainer"] p {{
-    margin: 4px 0; font-size: 0.9rem; color: {FABRIK['muted']}; }}
+/* 과목 설치고교(…schtbl) — 지역 그룹 헤더 + 학교 칩 버튼 그리드(컴팩트) */
+[class*="schtbl"] div[data-testid="stVerticalBlock"] {{ gap: 6px !important; }}
+[class*="schtbl"] div[data-testid="stHorizontalBlock"] {{ gap: 6px; }}
+[class*="schtbl"] .rg-label {{ margin: 12px 0 2px; padding-left: 8px;
+    font-size: 0.9rem; font-weight: 700; color: {FABRIK['navy']};
+    border-left: 3px solid {FABRIK['navy']}; }}
+[class*="schtbl"] .rg-label .gug {{ color: {FABRIK['muted']};
+    font-weight: 600; font-size: 0.82rem; }}
 [class*="schtbl"] div[data-testid="stButton"] > button {{
-    background: transparent !important; border: none !important;
-    min-height: 24px; padding: 2px 4px; box-shadow: none; }}
+    background: {FABRIK['surface2']} !important;
+    border: 1px solid {FABRIK['border']} !important; border-radius: 8px;
+    min-height: 0; padding: 5px 10px; box-shadow: none; }}
 [class*="schtbl"] div[data-testid="stButton"] > button:hover {{
+    border-color: {FABRIK['cta']} !important;
     background: {FABRIK['cta_soft']} !important; transform: none; }}
 [class*="schtbl"] div[data-testid="stButton"] > button p {{
-    text-align: left; font-size: 0.92rem; color: {FABRIK['text']};
-    text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }}
+    text-align: center; font-size: 0.86rem; color: {FABRIK['text']};
+    font-weight: 600; white-space: normal; word-break: keep-all;
+    line-height: 1.25; }}
+
+/* ── 반응형: 태블릿·모바일에서 과대 폰트/여백 축소 ── */
+@media (max-width: 1024px) {{
+    .stApp h1 {{ font-size: 1.9rem !important; }}
+    .stApp h2 {{ font-size: 1.35rem !important; }}
+    .stApp h3 {{ font-size: 1.15rem !important; }}
+    .stApp h4 {{ font-size: 1.02rem !important; }}
+    .block-container {{ padding-left: 1.6rem !important; padding-right: 1.6rem !important; }}
+}}
+@media (max-width: 640px) {{
+    .stApp h1 {{ font-size: 1.45rem !important; line-height: 1.2 !important; }}
+    .stApp h2 {{ font-size: 1.2rem !important; }}
+    .stApp h3 {{ font-size: 1.05rem !important; }}
+    .stApp h4 {{ font-size: 0.98rem !important; }}
+    .block-container {{ padding: 3rem 0.85rem 1.5rem !important; }}
+    [data-testid="stMarkdownContainer"] p {{ font-size: 0.9rem; }}
+    [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{ font-size: 0.76rem; }}
+    /* 탭 라벨 — 좁은 폭에서 넘침/줄바꿈 방지 */
+    button[data-baseweb="tab"] {{ padding: 0.55rem 0 !important; }}
+    button[data-baseweb="tab"] p {{ font-size: 0.82rem !important; }}
+    button[data-baseweb="tab"][aria-selected="true"] p {{ font-size: 0.84rem !important; }}
+    /* 버튼 — 약간 컴팩트 */
+    div[data-testid="stButton"] > button {{ min-height: 34px; }}
+    div[data-testid="stButton"] > button p {{ font-size: 0.88rem; }}
+    /* 키워드 그리드 칸 더 촘촘 */
+    .kw-cell {{ font-size: 0.78rem; padding: 4px 7px; gap: 4px; }}
+    .kw-cell .kw-rank {{ min-width: 22px; font-size: 0.68rem; }}
+    .kw-cell .kw-pts {{ font-size: 0.7rem; }}
+    /* 설치고교 칩 버튼 */
+    [class*="schtbl"] div[data-testid="stButton"] > button p {{ font-size: 0.8rem; }}
+    /* 연계 진로 카드 — 폰트·여백 축소 */
+    .cp-name {{ font-size: 0.9rem; }}
+    .cp-card {{ padding: 10px 12px; }}
+}}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -311,6 +376,23 @@ def reason_line(reasons, limit=8):
         b = VIA_BADGE.get(x["via"], "")
         parts.append(f'{b} `{x["term"]}` ({x["rank"]}위·{x["points"]}점)')
     return "  ".join(parts)
+
+
+def reason_table_html(reasons, limit=20):
+    """추천 근거(대표 키워드)를 4열 그리드로 압축(데스크톱 4열·모바일 2열).
+    각 칸: 순위 · 경로(🟦공시/🟩쉬운말) 키워드 · 점수. 20개면 4열×5행."""
+    if not reasons:
+        return "<p style='color:#6B6B6B'>매칭된 키워드가 없어요.</p>"
+    cells = []
+    for x in reasons[:limit]:
+        badge = VIA_BADGE.get(x["via"], "")
+        cells.append(
+            f"<div class='kw-cell'>"
+            f"<span class='kw-rank'>{x['rank']}위</span>"
+            f"<span class='kw-term'>{badge} {x['term']}</span>"
+            f"<span class='kw-pts'>{x['points']}점</span>"
+            f"</div>")
+    return "<div class='kw-grid'>" + "".join(cells) + "</div>"
 
 
 def parse_universities_legacy(raw):
@@ -520,41 +602,58 @@ def _xclose():
 
 
 def _subject_school_table(subject, prefix):
-    """과목 설치 고교 — 단순 테이블(시도|시군구|학교명). 학교명은 링크형 텍스트,
-    클릭 시 그 학교 개설과목으로 이동. prefix로 위젯키 구분."""
+    """과목 설치 고교 — 지역(시도·시군구)별로 묶고 학교는 칩 버튼 그리드로 표시.
+    학교명 검색·지역 필터·더보기 지원. 버튼 클릭 시 그 학교 개설과목으로 이동."""
     schools = R.schools_offering(subject)
     st.caption(f"전국 {len(schools):,}개교 개설 — 학교명을 누르면 그 학교 개설과목을 봅니다")
-    fc1, fc2 = st.columns(2)
+    fc1, fc2, fc3 = st.columns([1, 1, 1.4])
     with fc1:
         sido = _safe_select("시도", ["전체"] + R.school_sidos(), f"{prefix}_sido")
     guguns = R.school_guguns(sido) if sido != "전체" else []
     with fc2:
         gugun = _safe_select("시군구", ["전체"] + guguns, f"{prefix}_gugun",
                              disabled=not guguns)
+    with fc3:
+        q = st.text_input("학교명 검색", key=f"{prefix}_q",
+                          placeholder="학교명 일부 입력")
+    qn = q.strip()
     fil = [o for o in schools
            if (sido == "전체" or o["sido"] == sido)
-           and (not guguns or gugun == "전체" or o["gugun"] == gugun)]
-    st.caption(f"{len(fil):,}개교")
+           and (not guguns or gugun == "전체" or o["gugun"] == gugun)
+           and (not qn or qn in o["school"])]
+    st.caption(f"검색·필터 결과 **{len(fil):,}개교**")
     if not fil:
-        st.info("해당 지역에 개설 학교가 없어요.")
+        st.info("조건에 맞는 학교가 없어요. 검색어나 지역 필터를 바꿔보세요.")
         return
-    CAP = 40
+
+    show_key = f"{prefix}_show"
+    show_n = st.session_state.get(show_key, 60)
+    shown = fil[:show_n]
+    # (시도, 시군구) 순서 보존 그룹 → 지역 헤더 + 학교 버튼 그리드
+    groups = []
+    for o in shown:
+        if groups and groups[-1][0] == o["sido"] and groups[-1][1] == o["gugun"]:
+            groups[-1][2].append(o)
+        else:
+            groups.append([o["sido"], o["gugun"], [o]])
     with st.container(key=f"{prefix}schtbl"):
-        hd = st.columns([1.3, 1.1, 3.2])
-        for col, t in zip(hd, ("시도", "시군구", "학교명")):
-            col.markdown(f"**{t}**")
-        prev_s = prev_g = None
-        for i, o in enumerate(fil[:CAP]):
-            c = st.columns([1.3, 1.1, 3.2])
-            c[0].markdown(o["sido"] if o["sido"] != prev_s else "&nbsp;")
-            c[1].markdown(o["gugun"]
-                          if (o["gugun"] != prev_g or o["sido"] != prev_s) else "&nbsp;")
-            with c[2]:
-                if st.button(o["school"], key=f"{prefix}_sch_{i}"):
-                    _xgo(("school", o["shl_idf_cd"], o["school"]))
-            prev_s, prev_g = o["sido"], o["gugun"]
-    if len(fil) > CAP:
-        st.caption(f"… 외 {len(fil) - CAP:,}개교. 시도·시군구 필터로 좁혀보세요.")
+        for sido_, gugun_, items in groups:
+            st.markdown(
+                f"<div class='rg-label'>{sido_}"
+                f"<span class='gug'> · {gugun_} ({len(items)})</span></div>",
+                unsafe_allow_html=True)
+            cols = st.columns(4)
+            for j, o in enumerate(items):
+                with cols[j % 4]:
+                    if st.button(o["school"],
+                                 key=f"{prefix}_sch_{o['shl_idf_cd']}",
+                                 use_container_width=True):
+                        _xgo(("school", o["shl_idf_cd"], o["school"]))
+    if len(fil) > show_n:
+        if st.button(f"＋ 더 보기 (남은 {len(fil) - show_n:,}개교)",
+                     key=f"{prefix}_more", use_container_width=True):
+            st.session_state[show_key] = show_n + 60
+            st.rerun()
 
 
 def _xview_major(name):
@@ -563,7 +662,8 @@ def _xview_major(name):
         st.info("학과 정보를 찾을 수 없어요.")
         return
     st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
-    st.markdown("**대표 키워드** — " + reason_line(r["reasons"], limit=10))
+    st.markdown("**대표 키워드**")
+    st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     _render_univ_block(r)
     subj = R.subjects_of_major(r)
     flat = [s for typ in ("일반", "진로", "융합") for s in subj[typ]]
@@ -708,7 +808,8 @@ def _render_job_detail(r):
 def detail_modal(kind, r):
     icon = "📚" if kind == "major" else "💼"
     st.markdown(f"### {icon} {r['name']}  ·  점수 {r['score']}")
-    st.markdown("**추천 근거** — " + reason_line(r["reasons"]))
+    st.markdown("**추천 근거**")
+    st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     st.markdown("---")
     if kind == "major":
         _render_major_detail(r)
@@ -738,7 +839,8 @@ def major_info_modal(name):
         st.info("학과 정보를 찾을 수 없어요.")
         return
     st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
-    st.markdown("**대표 키워드** — " + reason_line(r["reasons"], limit=10))
+    st.markdown("**대표 키워드**")
+    st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     st.markdown("---")
     _render_major_detail(r)
     with st.expander("🏫 설치 고교 보기 (선택과목 개설 학교)"):
@@ -909,7 +1011,7 @@ with TAB_SCHOOL:
             st.markdown("#### 🏫 이 과목 설치학교")
             offered_all = R.schools_offering(subject_name)
             st.caption(f"전국 {len(offered_all):,}개교에서 개설")
-            sc1, sc2 = st.columns(2)
+            sc1, sc2, sc3 = st.columns([1, 1, 1.4])
             with sc1:
                 f_sido = _safe_select("시도 필터", ["전체"] + R.school_sidos(),
                                       "subj_sch_sido")
@@ -917,11 +1019,16 @@ with TAB_SCHOOL:
             with sc2:
                 f_gugun = _safe_select("시군구 필터", ["전체"] + guguns2,
                                        "subj_sch_gugun", disabled=not guguns2)
+            with sc3:
+                f_q = st.text_input("학교명 검색", key="subj_sch_q",
+                                    placeholder="학교명 일부 입력")
             offered = R.schools_offering(
                 subject_name,
                 sido=None if f_sido == "전체" else f_sido,
                 gugun=None if f_gugun == "전체" else f_gugun)
-            st.caption(f"{len(offered):,}개교")
+            if f_q.strip():
+                offered = [o for o in offered if f_q.strip() in o["school"]]
+            st.caption(f"검색·필터 결과 **{len(offered):,}개교**")
             CAP = 140
             st.markdown(school_table_html(offered[:CAP]), unsafe_allow_html=True)
             if len(offered) > CAP:
