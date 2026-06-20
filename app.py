@@ -36,6 +36,9 @@ from urllib.parse import quote
 
 VIA_BADGE = {"공시": "🟦", "쉬운말": "🟩"}
 
+# 과목 유형 → 위젯키용 ASCII 코드(버튼 키에 인코딩 → CSS ::before 뱃지 매칭)
+SUBJ_TYPE_CODE = {"일반": "il", "진로": "jr", "융합": "yh"}
+
 # 대학명 클릭 → EBSi 대학 검색(새창). 괄호 캠퍼스 표기는 검색어에서 제거.
 EBSI_BASE = ("https://www.ebsi.co.kr/ebs/ent/entNgf/retrieveEntNgfUnivList.ebs"
              "?srchUnivNm=")
@@ -332,6 +335,28 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     font-weight: 600; white-space: normal; word-break: keep-all;
     line-height: 1.25; }}
 
+/* 선택과목 칩 그리드(…subjgrid): 데스크톱 4열·모바일 2열 (st.columns reflow) */
+[class*="subjgrid"] div[data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; gap: 6px; }}
+[class*="subjgrid"] div[data-testid="stVerticalBlock"] {{ gap: 6px !important; }}
+[class*="subjgrid"] div[data-testid="stButton"] > button {{
+    display: flex; align-items: center; justify-content: flex-start; }}
+[class*="subjgrid"] div[data-testid="stButton"] > button p {{
+    white-space: normal; word-break: keep-all; line-height: 1.2;
+    font-size: 0.86rem; text-align: left; }}
+
+/* 과목 유형 뱃지 — 칩 앞 무채색 알약(.badge 톤). 버튼 키 코드로 매칭 */
+[class*="st-key-xmajsub_il_"] button::before,
+[class*="st-key-xmajsub_jr_"] button::before,
+[class*="st-key-xmajsub_yh_"] button::before {{
+    display: inline-block; margin-right: 6px; padding: 0 7px;
+    border-radius: 999px; border: 1px solid {FABRIK['line_strong']};
+    background: {FABRIK['bg']}; color: {FABRIK['ink_mid']};
+    font-size: 0.64rem; font-weight: 800; line-height: 1.7;
+    flex: none; white-space: nowrap; }}
+[class*="st-key-xmajsub_il_"] button::before {{ content: "일반"; }}
+[class*="st-key-xmajsub_jr_"] button::before {{ content: "진로"; }}
+[class*="st-key-xmajsub_yh_"] button::before {{ content: "융합"; }}
+
 /* ── 반응형: 태블릿·모바일에서 과대 폰트/여백 축소 ── */
 @media (max-width: 1024px) {{
     .stApp h1 {{ font-size: 1.9rem !important; }}
@@ -364,6 +389,11 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     /* 연계 진로 카드 — 폰트·여백 축소 */
     .cp-name {{ font-size: 0.9rem; }}
     .cp-card {{ padding: 10px 12px; }}
+    /* 선택과목 그리드 — 모바일 2열 강제 */
+    [class*="subjgrid"] div[data-testid="stColumn"] {{
+        flex: 0 1 calc(50% - 3px) !important;
+        min-width: calc(50% - 3px) !important; width: calc(50% - 3px) !important; }}
+    [class*="subjgrid"] div[data-testid="stButton"] > button p {{ font-size: 0.8rem; }}
 }}
 </style>
 """
@@ -666,28 +696,34 @@ def _xview_major(name):
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     _render_univ_block(r)
     subj = R.subjects_of_major(r)
-    flat = [s for typ in ("일반", "진로", "융합") for s in subj[typ]]
-    if flat:
+    pairs = [(s, typ) for typ in ("일반", "진로", "융합") for s in subj[typ]]
+    if pairs:
         # 과목 버튼 + 선택 과목의 설치 고교를 같은 박스 안에(하나의 영역)
         with st.container(border=True):
-            st.markdown(f"**📘 2022 선택과목 ({len(flat)})** — 과목을 누르면 바로 아래에 설치 고교가 표시됩니다")
+            st.markdown(f"**📘 2022 선택과목 ({len(pairs)})** — 과목을 누르면 바로 아래에 설치 "
+                        "고교가 표시됩니다. 칩 앞 뱃지는 과목 유형(일반·진로·융합)이에요.")
             cur = st.session_state.get("xmaj_sub")
             cur_subj = cur[1] if (isinstance(cur, tuple) and cur[0] == r["name"]) else None
-            cols = st.columns(3)
-            for i, s in enumerate(flat):
-                with cols[i % 3]:
-                    if st.button(s, key=f"xmajsub_{i}", use_container_width=True):
-                        # 같은 과목 재클릭 시 접기
-                        st.session_state["xmaj_sub"] = (
-                            None if cur_subj == s else (r["name"], s))
+            with st.container(key="xmaj_subjgrid"):
+                for start in range(0, len(pairs), 4):
+                    cols = st.columns(4)
+                    for j, (s, typ) in enumerate(pairs[start:start + 4]):
+                        with cols[j]:
+                            if st.button(s, key=f"xmajsub_{SUBJ_TYPE_CODE[typ]}_{start + j}",
+                                         use_container_width=True):
+                                # 같은 과목 재클릭 시 접기
+                                st.session_state["xmaj_sub"] = (
+                                    None if cur_subj == s else (r["name"], s))
             cur = st.session_state.get("xmaj_sub")
             cur_subj = cur[1] if (isinstance(cur, tuple) and cur[0] == r["name"]) else None
-            if cur_subj in flat:
-                i = flat.index(cur_subj)
+            sel = next(((SUBJ_TYPE_CODE[t], k) for k, (s, t) in enumerate(pairs)
+                        if s == cur_subj), None)
+            if sel is not None:
+                code, sel_i = sel
                 st.markdown(
-                    f"<style>[class~='st-key-xmajsub_{i}'] button{{"
+                    f"<style>[class~='st-key-xmajsub_{code}_{sel_i}'] button{{"
                     f"background:{FABRIK['navy']} !important;border-color:{FABRIK['navy']} !important;}}"
-                    f"[class~='st-key-xmajsub_{i}'] button p{{color:#fff !important;font-weight:700;}}"
+                    f"[class~='st-key-xmajsub_{code}_{sel_i}'] button p{{color:#fff !important;font-weight:700;}}"
                     f"</style>", unsafe_allow_html=True)
                 st.markdown(f"##### 📘 {cur_subj} · 설치 고교")
                 _subject_school_table(cur_subj, "xmaj")
@@ -707,17 +743,19 @@ def _xview_school(sid, name):
     st.markdown(f"### 🏫 {info['school']}  ·  {info['sido']} {info['gugun']}")
     st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다")
     gidx = 0
-    for typ in ("일반", "진로", "융합"):
-        subs = info["by_type"][typ]
-        if not subs:
-            continue
-        st.markdown(f"**{typ} 선택 ({len(subs)})**")
-        cols = st.columns(3)
-        for k, s in enumerate(subs):
-            with cols[k % 3]:
-                if st.button(s, key=f"xschsub_{gidx}", use_container_width=True):
-                    _xgo(("subject", s))
-            gidx += 1
+    with st.container(key="xsch_subjgrid"):
+        for typ in ("일반", "진로", "융합"):
+            subs = info["by_type"][typ]
+            if not subs:
+                continue
+            st.markdown(f"**{typ} 선택 ({len(subs)})**")
+            for start in range(0, len(subs), 4):
+                cols = st.columns(4)
+                for j, s in enumerate(subs[start:start + 4]):
+                    with cols[j]:
+                        if st.button(s, key=f"xschsub_{gidx}", use_container_width=True):
+                            _xgo(("subject", s))
+                    gidx += 1
 
 
 def _xview_job(name):
@@ -777,17 +815,19 @@ def _render_school_detail(r):
     st.markdown(f"### 🏫 {info['school']}  ·  {info['sido']} {info['gugun']}")
     st.caption(f"개설 과목 {info['n_subj']}개 (학교알리미 2025·2026 병합 기준). "
                "과목을 누르면 그 과목과 연관된 학과를 보여줍니다.")
-    for typ in ("일반", "진로", "융합"):
-        subs = info["by_type"][typ]
-        if not subs:
-            continue
-        st.markdown(f"**{typ} 선택 ({len(subs)})**")
-        cols = st.columns(3)
-        for k, s in enumerate(subs):
-            with cols[k % 3]:
-                if st.button(s, key=f"schsub_{r['shl_idf_cd']}_{typ}_{s}",
-                             use_container_width=True):
-                    _xopen(("subject", s))
+    with st.container(key="schd_subjgrid"):
+        for typ in ("일반", "진로", "융합"):
+            subs = info["by_type"][typ]
+            if not subs:
+                continue
+            st.markdown(f"**{typ} 선택 ({len(subs)})**")
+            for start in range(0, len(subs), 4):
+                cols = st.columns(4)
+                for j, s in enumerate(subs[start:start + 4]):
+                    with cols[j]:
+                        if st.button(s, key=f"schsub_{r['shl_idf_cd']}_{typ}_{s}",
+                                     use_container_width=True):
+                            _xopen(("subject", s))
 
 
 def _render_job_detail(r):
