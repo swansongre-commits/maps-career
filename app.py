@@ -608,13 +608,17 @@ def _render_univ_block(r):
 
 
 # ── 탐색기: 과목 ↔ 학교 ↔ 학과 무한 탐색 (단일 모달 + 네비 스택, reopen 패턴) ──
+# xreopen: 네비게이션(열기/이동/뒤로) 때만 True로 켜서 하단 가드가 모달을 1회 재오픈.
+# 내장 X·ESC·배경클릭으로 닫은 뒤 무관한 리런에서 모달이 되살아나는 것을 방지.
 def _xopen(view):
     st.session_state["xstack"] = [view]
+    st.session_state["xreopen"] = True
     st.rerun()
 
 
 def _xgo(view):
     st.session_state["xstack"] = st.session_state.get("xstack", []) + [view]
+    st.session_state["xreopen"] = True
     st.rerun()
 
 
@@ -623,11 +627,13 @@ def _xback():
     if len(s) > 1:
         s.pop()
     st.session_state["xstack"] = s
+    st.session_state["xreopen"] = True
     st.rerun()
 
 
 def _xclose():
     st.session_state["xstack"] = []
+    st.session_state["xreopen"] = False
     st.rerun()
 
 
@@ -782,31 +788,31 @@ def _xcrumb(v):
             "job": "💼 "}.get(v[0], "") + (v[2] if v[0] == "school" else v[1])
 
 
-def render_explorer():
-    """과목↔학교↔학과↔직업 탐색 — 하단 인라인 패널(모달 아님). 네비 스택 기반."""
+@st.dialog("🔎 탐색", width="large")
+def explorer_dialog():
+    """과목↔학교↔학과↔직업 탐색 — 단일 모달 + 네비 스택(reopen 패턴).
+    어느 탭에서 항목을 클릭하든 이 모달로 상세가 뜬다. 깊이 이동은 _xgo가
+    xstack에 push + rerun → 하단 가드가 모달을 다시 열어 새 화면을 그린다."""
     stack = st.session_state.get("xstack", [])
     if not stack:
         return
-    st.markdown("---")
-    with st.container(border=True):
-        st.markdown("#### 🔎 탐색")
-        st.caption("경로: " + "  ›  ".join(_xcrumb(v) for v in stack))
-        c1, c2, _ = st.columns([1, 1, 4])
-        with c1:
-            if len(stack) > 1 and st.button("← 뒤로", use_container_width=True, key="x_back"):
-                _xback()
-        with c2:
-            if st.button("✕ 닫기", use_container_width=True, key="x_close"):
-                _xclose()
-        top = stack[-1]
-        if top[0] == "major":
-            _xview_major(top[1])
-        elif top[0] == "subject":
-            _xview_subject(top[1])
-        elif top[0] == "school":
-            _xview_school(top[1], top[2])
-        elif top[0] == "job":
-            _xview_job(top[1])
+    st.caption("경로: " + "  ›  ".join(_xcrumb(v) for v in stack))
+    c1, c2, _ = st.columns([1, 1, 4])
+    with c1:
+        if len(stack) > 1 and st.button("← 뒤로", use_container_width=True, key="x_back"):
+            _xback()
+    with c2:
+        if st.button("✕ 닫기", use_container_width=True, key="x_close"):
+            _xclose()
+    top = stack[-1]
+    if top[0] == "major":
+        _xview_major(top[1])
+    elif top[0] == "subject":
+        _xview_subject(top[1])
+    elif top[0] == "school":
+        _xview_school(top[1], top[2])
+    elif top[0] == "job":
+        _xview_job(top[1])
 
 
 def _render_school_detail(r):
@@ -1152,5 +1158,9 @@ with TAB_MAJOR:
     render_major_info_tab()
 
 
-# ── 탐색 패널(하단 인라인) — 어느 탭에서 진입하든 페이지 하단에 펼쳐짐 ──
-render_explorer()
+# ── 탐색 모달(단일 dialog + reopen 패턴) — 네비게이션 시에만 1회 재오픈 ──
+# 모달이 열려 있는 동안의 내부 위젯 조작은 Streamlit이 모달 본문을 자동 재실행한다.
+# _xopen/_xgo/_xback가 켠 xreopen을 여기서 소비(1회) → 무관 리런 시 되살아나지 않음.
+if st.session_state.get("xreopen"):
+    st.session_state["xreopen"] = False
+    explorer_dialog()
