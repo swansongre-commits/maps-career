@@ -39,6 +39,13 @@ VIA_BADGE = {"공시": "🟦", "쉬운말": "🟩"}
 # 과목 유형 → 위젯키용 ASCII 코드(버튼 키에 인코딩 → CSS ::before 뱃지 매칭)
 SUBJ_TYPE_CODE = {"일반": "il", "진로": "jr", "융합": "yh"}
 
+
+def via_badge_html(via):
+    """매칭 경로(공시/쉬운말) 뱃지 — 무채색(.badge 톤). 색이 아니라 채움으로 구분:
+    공시=잉크 반전(채움), 쉬운말=외곽선."""
+    cls = "vb-off" if via == "공시" else "vb-easy"
+    return f"<span class='vbadge {cls}'>{via}</span>"
+
 # 대학명 클릭 → EBSi 대학 검색(새창). 괄호 캠퍼스 표기는 검색어에서 제거.
 EBSI_BASE = ("https://www.ebsi.co.kr/ebs/ent/entNgf/retrieveEntNgfUnivList.ebs"
              "?srchUnivNm=")
@@ -51,45 +58,6 @@ def _ebsi_url(name):
 
 def univ_link(name):
     return f'<a href="{_ebsi_url(name)}" target="_blank">{name}</a>'
-
-
-def school_table_html(sch):
-    """학교 목록 → 한 테이블(헤더 1개). 시도/시군구 행병합 + 시도경계 굵은선,
-    학교명은 한 행에 2개씩 배치(가로 공간 활용)."""
-    if not sch:
-        return ""
-    from math import ceil
-    # (시도, 시군구) 순서 보존 그룹
-    groups = []
-    for o in sch:
-        if groups and groups[-1][0] == o["sido"] and groups[-1][1] == o["gugun"]:
-            groups[-1][2].append(o["school"])
-        else:
-            groups.append((o["sido"], o["gugun"], [o["school"]]))
-    # 시도별 총 행수(각 시군구의 ceil(학교수/2) 합)
-    sido_rows = {}
-    for sido, gugun, schools in groups:
-        sido_rows[sido] = sido_rows.get(sido, 0) + ceil(len(schools) / 2)
-    trs = []
-    sido_emitted = set()
-    for sido, gugun, schools in groups:
-        gug_rows = ceil(len(schools) / 2)
-        for ri in range(gug_rows):
-            pair = schools[ri * 2:ri * 2 + 2]
-            cells = ""
-            new_sido = sido not in sido_emitted and ri == 0
-            if new_sido:
-                cells += f"<td class='grp' rowspan='{sido_rows[sido]}'>{sido}</td>"
-                sido_emitted.add(sido)
-            if ri == 0:
-                cells += f"<td class='grp' rowspan='{gug_rows}'>{gugun}</td>"
-            s1 = f"<td><b>{pair[0]}</b></td>"
-            s2 = f"<td><b>{pair[1]}</b></td>" if len(pair) > 1 else "<td></td>"
-            cls = " class='grp-start'" if new_sido else ""
-            trs.append(f"<tr{cls}>{cells}{s1}{s2}</tr>")
-    return ("<table class='univ-tb'><thead><tr><th>시도</th><th>시군구</th>"
-            "<th colspan='2'>학교명</th></tr></thead><tbody>"
-            + "".join(trs) + "</tbody></table>")
 
 
 def pair_card_html(p):
@@ -239,6 +207,11 @@ div[role="dialog"], div[data-testid="stDialog"] > div > div {{
     box-shadow: 0 18px 60px rgba(0,0,0,0.07) !important;
 }}
 div[data-testid="stDialogOverlay"] {{ background: rgba(20,24,22,0.34) !important; }}
+/* 기본 닫기 X 숨김 — iOS식 자체 헤더(좌:뒤로 / 우:닫기)로 통일 */
+div[data-testid="stDialog"] button[aria-label="Close"],
+div[role="dialog"] button[aria-label="Close"] {{ display: none !important; }}
+/* 기본 타이틀 바 숨김 — 버튼을 타이틀 위로 올려 자체 헤더로 렌더 */
+div[role="dialog"] > div:first-child {{ display: none !important; }}
 
 /* 아코디언 — 8px 통일 */
 details {{ border-radius: 8px !important; border: 1px solid {FABRIK['border']} !important;
@@ -335,6 +308,34 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
     font-weight: 600; white-space: normal; word-break: keep-all;
     line-height: 1.25; }}
 
+/* 매칭 경로 뱃지(공시/쉬운말) — 무채색. 공시=잉크 채움, 쉬운말=외곽선 */
+.vbadge {{ display: inline-block; margin-right: 5px; padding: 0 7px;
+    border-radius: 999px; font-size: 0.62rem; font-weight: 800;
+    line-height: 1.7; vertical-align: middle; white-space: nowrap;
+    border: 1px solid {FABRIK['line_strong']}; }}
+/* 공시=특수분류 파랑(타임라인 §2), 쉬운말=중립 회색 */
+.vbadge.vb-off {{ background: #EFF6FF; color: #1D4ED8; border-color: #93C5FD; }}
+.vbadge.vb-easy {{ background: {FABRIK['bg']}; color: {FABRIK['ink_mid']}; }}
+
+/* 제외한 키워드 = 경고·삭제 빨강(타임라인 §2) */
+.kw-excl {{ display: inline-block; padding: 2px 10px; margin: 2px 3px 0 0;
+    border-radius: 999px; background: #FDF2F2; color: #C0392B;
+    border: 1px solid #E0B4B4; font-weight: 750; font-size: 0.82rem; }}
+
+/* 추천 적합도 지표 — 강도 막대 + 3단 라벨(무채색 농도로 구분, 색 분류 X) */
+.strength {{ display: flex; flex-direction: column; justify-content: center;
+    gap: 4px; min-height: 38px; }}
+.strength .sbar {{ height: 6px; border-radius: 999px;
+    background: {FABRIK['surface_soft']}; overflow: hidden; }}
+.strength .sfill {{ height: 100%; border-radius: 999px; }}
+.strength .sfill.s-hi {{ background: #1D4ED8; }}
+.strength .sfill.s-mid {{ background: #3B82F6; }}
+.strength .sfill.s-lo {{ background: #93C5FD; }}
+.strength .smeta {{ display: flex; align-items: center; gap: 7px;
+    font-size: 0.74rem; line-height: 1; }}
+.strength .stier {{ font-weight: 800; color: {FABRIK['text']}; }}
+.strength .smatch {{ color: {FABRIK['muted']}; font-weight: 600; }}
+
 /* 선택과목 칩 그리드(…subjgrid): 데스크톱 4열·모바일 2열 (st.columns reflow) */
 [class*="subjgrid"] div[data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; gap: 6px; }}
 [class*="subjgrid"] div[data-testid="stVerticalBlock"] {{ gap: 6px !important; }}
@@ -343,6 +344,11 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 [class*="subjgrid"] div[data-testid="stButton"] > button p {{
     white-space: normal; word-break: keep-all; line-height: 1.2;
     font-size: 0.86rem; text-align: left; }}
+/* 학교 화면에서 '거쳐온 학과'의 권장과목 강조 — 특수분류 파랑(공시 배지와 동일) */
+[class*="st-key-xschsub_hl_"] button {{
+    border: 2px solid #1D4ED8 !important;
+    background: #EFF6FF !important; }}
+[class*="st-key-xschsub_hl_"] button p {{ font-weight: 800 !important; color: #1D4ED8 !important; }}
 
 /* 과목 유형 뱃지 — 칩 앞 무채색 알약(.badge 톤). 버튼 키 코드로 매칭 */
 [class*="st-key-xmajsub_il_"] button::before,
@@ -410,19 +416,38 @@ def reason_line(reasons, limit=8):
 
 def reason_table_html(reasons, limit=20):
     """추천 근거(대표 키워드)를 4열 그리드로 압축(데스크톱 4열·모바일 2열).
-    각 칸: 순위 · 경로(🟦공시/🟩쉬운말) 키워드 · 점수. 20개면 4열×5행."""
+    각 칸: 순위 · 경로(공시/쉬운말) 뱃지 + 키워드 · 점수. 20개면 4열×5행."""
     if not reasons:
         return "<p style='color:#6B6B6B'>매칭된 키워드가 없어요.</p>"
     cells = []
     for x in reasons[:limit]:
-        badge = VIA_BADGE.get(x["via"], "")
         cells.append(
             f"<div class='kw-cell'>"
             f"<span class='kw-rank'>{x['rank']}위</span>"
-            f"<span class='kw-term'>{badge} {x['term']}</span>"
+            f"<span class='kw-term'>{via_badge_html(x['via'])}{x['term']}</span>"
             f"<span class='kw-pts'>{x['points']}점</span>"
             f"</div>")
     return "<div class='kw-grid'>" + "".join(cells) + "</div>"
+
+
+def strength_html(score, top, n_match=None):
+    """사용자용 적합도 지표 — 원점수 대신 '상대 강도 막대 + 3단 라벨'.
+    top(이 목록 1위 점수) 기준 상대화 → 만점이 자동으로 생긴다(1위=가득).
+    원점수는 백엔드 정렬에만 쓰고 화면엔 노출하지 않는다."""
+    rel = (score / top) if top else 0
+    if rel >= 0.7:
+        tier, cls = "매우 적합", "s-hi"
+    elif rel >= 0.4:
+        tier, cls = "적합", "s-mid"
+    else:
+        tier, cls = "관련 있음", "s-lo"
+    pct = max(8, round(rel * 100))
+    meta = f"<span class='stier'>{tier}</span>"
+    if n_match:
+        meta += f"<span class='smatch'>키워드 {n_match}개 일치</span>"
+    return (f"<div class='strength' title='추천 강도(1위 기준 상대)'>"
+            f"<div class='sbar'><div class='sfill {cls}' style='width:{pct}%'></div></div>"
+            f"<div class='smeta'>{meta}</div></div>")
 
 
 def parse_universities_legacy(raw):
@@ -697,7 +722,7 @@ def _xview_major(name):
     if not r:
         st.info("학과 정보를 찾을 수 없어요.")
         return
-    st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
+    st.markdown(f"### 📚 {r['name']}")
     st.markdown("**대표 키워드**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     _render_univ_block(r)
@@ -733,6 +758,39 @@ def _xview_major(name):
                     f"</style>", unsafe_allow_html=True)
                 st.markdown(f"##### 📘 {cur_subj} · 설치 고교")
                 _subject_school_table(cur_subj, "xmaj")
+
+    # 이 학과 권장과목을 가장 많이 개설한 고교 Top-N (지역 필터 + 시도·시군구 표시)
+    subj_chk = R.subjects_of_major(r)
+    if any(subj_chk.values()):
+        with st.container(border=True):
+            st.markdown("**🏆 이 학과 권장과목을 가장 많이 개설한 고교**")
+            tc1, tc2 = st.columns(2)
+            with tc1:
+                t_sido = _safe_select("시도", ["전국"] + R.school_sidos(), "xmajtop_sido")
+            t_guguns = R.school_guguns(t_sido) if t_sido != "전국" else []
+            with tc2:
+                t_gugun = _safe_select("시군구", ["전체"] + t_guguns, "xmajtop_gugun",
+                                       disabled=not t_guguns)
+            top = R.top_schools_for_major(
+                r, sido=None if t_sido == "전국" else t_sido,
+                gugun=None if (not t_guguns or t_gugun == "전체") else t_gugun,
+                top_n=5)
+            if not top["schools"]:
+                st.info("이 지역에 개설 학교가 없어요. 지역을 바꿔보세요.")
+            else:
+                scope = "전국" if t_sido == "전국" else (
+                    f"{t_sido}" + ("" if (not t_guguns or t_gugun == "전체")
+                                   else f" {t_gugun}"))
+                st.caption(f"{scope} 기준 — 권장 {top['total']}과목 중 최다 "
+                           f"{top['max_matched']}과목 개설 학교 {top['n_full']:,}곳. "
+                           "학교를 누르면 개설과목을 봅니다.")
+                for o in top["schools"]:
+                    label = (f"{o['school']}　·　{o['sido']} {o['gugun']}"
+                             f"　·　{o['matched']}/{top['total']}과목")
+                    if st.button(label, key=f"xmajtop_{o['shl_idf_cd']}",
+                                 use_container_width=True):
+                        _xgo(("school", o["shl_idf_cd"], o["school"]))
+
     rel = R.major_extra(r).get("관련직업", "")
     if rel:
         with st.expander("💼 관련 직업"):
@@ -744,22 +802,43 @@ def _xview_subject(name):
     _subject_school_table(name, "xsub")
 
 
+def _stack_recent_major():
+    """현재 탐색 스택에서 가장 가까운 학과명(있으면) — 학교 화면에서 권장과목 강조용."""
+    for v in reversed(st.session_state.get("xstack", [])):
+        if v[0] == "major":
+            return v[1]
+    return None
+
+
 def _xview_school(sid, name):
     info = R.school_subjects(sid)
     st.markdown(f"### 🏫 {info['school']}  ·  {info['sido']} {info['gugun']}")
-    st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다")
+    # 거쳐온 학과가 있으면 그 학과 권장과목을 강조(테두리+배경)
+    hl_major = _stack_recent_major()
+    hl_set = R.major_subject_norm_set(hl_major) if hl_major else set()
+    if hl_set:
+        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다. "
+                   f"**강조된 과목**은 ‘{hl_major}’ 권장과목이에요.")
+    else:
+        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다.")
     gidx = 0
     with st.container(key="xsch_subjgrid"):
         for typ in ("일반", "진로", "융합"):
             subs = info["by_type"][typ]
             if not subs:
                 continue
-            st.markdown(f"**{typ} 선택 ({len(subs)})**")
+            n_hl = sum(1 for s in subs if R.norm_subject(s) in hl_set)
+            head = f"**{typ} 선택 ({len(subs)})**"
+            if hl_set and n_hl:
+                head += f" · 권장 {n_hl}개"
+            st.markdown(head)
             for start in range(0, len(subs), 4):
                 cols = st.columns(4)
                 for j, s in enumerate(subs[start:start + 4]):
+                    hl = R.norm_subject(s) in hl_set
+                    key = f"xschsub_hl_{gidx}" if hl else f"xschsub_{gidx}"
                     with cols[j]:
-                        if st.button(s, key=f"xschsub_{gidx}", use_container_width=True):
+                        if st.button(s, key=key, use_container_width=True):
                             _xgo(("subject", s))
                     gidx += 1
 
@@ -796,14 +875,17 @@ def explorer_dialog():
     stack = st.session_state.get("xstack", [])
     if not stack:
         return
-    st.caption("경로: " + "  ›  ".join(_xcrumb(v) for v in stack))
-    c1, c2, _ = st.columns([1, 1, 4])
-    with c1:
+    # iOS 웹 스타일 헤더: 최상단 네비 바(좌:뒤로 / 우:닫기) → 그 아래 타이틀.
+    # Streamlit 기본 타이틀 바·X는 CSS로 숨기고 여기서 직접 그린다.
+    hc1, _, hc3 = st.columns([1.2, 3, 1.2])
+    with hc1:
         if len(stack) > 1 and st.button("← 뒤로", use_container_width=True, key="x_back"):
             _xback()
-    with c2:
-        if st.button("✕ 닫기", use_container_width=True, key="x_close"):
+    with hc3:
+        if st.button("닫기 ✕", use_container_width=True, key="x_close"):
             _xclose()
+    st.markdown("#### 🔎 탐색")
+    st.caption("경로: " + "  ›  ".join(_xcrumb(v) for v in stack))
     top = stack[-1]
     if top[0] == "major":
         _xview_major(top[1])
@@ -853,7 +935,7 @@ def _render_job_detail(r):
 @st.dialog("상세 정보", width="large")
 def detail_modal(kind, r):
     icon = "📚" if kind == "major" else "💼"
-    st.markdown(f"### {icon} {r['name']}  ·  점수 {r['score']}")
+    st.markdown(f"### {icon} {r['name']}")
     st.markdown("**추천 근거**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     st.markdown("---")
@@ -874,8 +956,7 @@ def subject_majors_modal(subject_name):
         st.info("연관 학과가 없어요.")
         return
     for m in majors:
-        st.markdown(f"- **{m['name']}**"
-                    + (f"  ·  {m['score']}점" if sort_score else ""))
+        st.markdown(f"- **{m['name']}**")
 
 
 @st.dialog("학과 상세", width="large")
@@ -884,7 +965,7 @@ def major_info_modal(name):
     if not r:
         st.info("학과 정보를 찾을 수 없어요.")
         return
-    st.markdown(f"### 📚 {r['name']}  ·  키워드 점수 {r['score']}")
+    st.markdown(f"### 📚 {r['name']}")
     st.markdown("**대표 키워드**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     st.markdown("---")
@@ -917,7 +998,8 @@ with st.sidebar:
         st.caption("🔒 OPENAI_API_KEY 미설정 — 규칙 기반으로 동작")
     st.markdown("---")
     st.caption("범례")
-    st.markdown("🟦 공시 키워드(원문)  ·  🟩 쉬운말로 매칭")
+    st.markdown(f"{via_badge_html('공시')} 공시 키워드(원문)  &nbsp; "
+                f"{via_badge_html('쉬운말')} 쉬운말로 매칭", unsafe_allow_html=True)
 
 TAB_REC, TAB_SCHOOL, TAB_MAJOR = st.tabs(
     ["🎯 학과·직업 추천", "🏫 학교별 설치과목", "📚 학과별 정보"])
@@ -964,35 +1046,49 @@ with TAB_REC:
             st.warning("키워드를 추출하지 못했어요. 조금 더 자세히 적어보세요.")
         if out["excluded"]:
             st.markdown("**제외한 키워드** &nbsp; "
-                        + " ".join(f"`{t}`" for t in out["excluded"]))
+                        + " ".join(f"<span class='kw-excl'>{t}</span>"
+                                   for t in out["excluded"]),
+                        unsafe_allow_html=True)
             st.caption("싫어하거나 어려워하는 것은 추천에서 제외했어요.")
 
         st.markdown("#### 🎯 추천 결과")
         st.caption("추천 학과나 직업을 클릭하면 상세한 내용을 볼 수 있습니다.")
         col1, col2 = st.columns(2)
+        top_m = out["majors"][0]["score"] if out["majors"] else 1
+        top_j = out["jobs"][0]["score"] if out["jobs"] else 1
         with col1:
             with st.container(border=True):
                 st.subheader("📚 추천 학과")
                 if not out["majors"]:
                     st.info("매칭되는 학과가 없어요.")
                 for i, r in enumerate(out["majors"], 1):
-                    if st.button(f"{i}.  {r['name']}　·　{r['score']}점",
-                                 key=f"maj_{i}", use_container_width=True):
-                        _xopen(("major", r["name"]))
+                    bc1, bc2 = st.columns([3, 2])
+                    with bc1:
+                        if st.button(f"{i}.  {r['name']}",
+                                     key=f"maj_{i}", use_container_width=True):
+                            _xopen(("major", r["name"]))
+                    with bc2:
+                        st.markdown(strength_html(r["score"], top_m, len(r["reasons"])),
+                                    unsafe_allow_html=True)
         with col2:
             with st.container(border=True):
                 st.subheader("💼 추천 직업")
                 if not out["jobs"]:
                     st.info("매칭되는 직업이 없어요.")
                 for i, r in enumerate(out["jobs"], 1):
-                    if st.button(f"{i}.  {r['name']}　·　{r['score']}점",
-                                 key=f"job_{i}", use_container_width=True):
-                        _xopen(("job", r["name"]))
+                    bc1, bc2 = st.columns([3, 2])
+                    with bc1:
+                        if st.button(f"{i}.  {r['name']}",
+                                     key=f"job_{i}", use_container_width=True):
+                            _xopen(("job", r["name"]))
+                    with bc2:
+                        st.markdown(strength_html(r["score"], top_j, len(r["reasons"])),
+                                    unsafe_allow_html=True)
 
         st.markdown("---")
         st.subheader("🧭 추천 진로")
         st.caption("추천 학과와 직업이 **공통 키워드**로 이어지는 진로 조합입니다. "
-                   "공통 키워드가 많을수록(주황 강조) 연결이 강합니다.")
+                   "공통 키워드가 많을수록(진하게 강조) 연결이 강합니다.")
         if not out["pairs"]:
             st.info("연계 진로를 만들 수 없어요.")
         else:
@@ -1038,8 +1134,7 @@ with TAB_SCHOOL:
             else:
                 show_n = len(majors)
             for m in majors[:show_n]:
-                with st.expander(f"**{m['name']}**"
-                                 + (f"  ·  {m['score']}점" if sort_score else "")):
+                with st.expander(f"**{m['name']}**"):
                     # 연관 학과의 설치대학
                     uinfo = R.universities_for(m["name"])
                     if uinfo.get("univ_count", 0) > 0:
@@ -1053,32 +1148,9 @@ with TAB_SCHOOL:
                     else:
                         st.caption("🏛️ 설치대학 정보 없음(전문대·교양학부 등)")
 
-            # ── 이 과목을 개설한 고교 (지역 필터) ──
+            # ── 이 과목을 개설한 고교 — 탐색 패널과 동일한 지역그룹 칩 그리드 ──
             st.markdown("#### 🏫 이 과목 설치학교")
-            offered_all = R.schools_offering(subject_name)
-            st.caption(f"전국 {len(offered_all):,}개교에서 개설")
-            sc1, sc2, sc3 = st.columns([1, 1, 1.4])
-            with sc1:
-                f_sido = _safe_select("시도 필터", ["전체"] + R.school_sidos(),
-                                      "subj_sch_sido")
-            guguns2 = (R.school_guguns(f_sido) if f_sido != "전체" else [])
-            with sc2:
-                f_gugun = _safe_select("시군구 필터", ["전체"] + guguns2,
-                                       "subj_sch_gugun", disabled=not guguns2)
-            with sc3:
-                f_q = st.text_input("학교명 검색", key="subj_sch_q",
-                                    placeholder="학교명 일부 입력")
-            offered = R.schools_offering(
-                subject_name,
-                sido=None if f_sido == "전체" else f_sido,
-                gugun=None if f_gugun == "전체" else f_gugun)
-            if f_q.strip():
-                offered = [o for o in offered if f_q.strip() in o["school"]]
-            st.caption(f"검색·필터 결과 **{len(offered):,}개교**")
-            CAP = 140
-            st.markdown(school_table_html(offered[:CAP]), unsafe_allow_html=True)
-            if len(offered) > CAP:
-                st.caption(f"… 외 {len(offered) - CAP:,}개교. 지역 필터로 좁혀보세요.")
+            _subject_school_table(subject_name, "subjpage")
 
     else:  # 학교로 찾기
         st.markdown("##### 🏫 학교로 찾기 — 학교를 고르면 개설과목을 보여줍니다")

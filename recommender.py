@@ -450,6 +450,53 @@ def schools_offering(subject_name, sido=None, gugun=None, limit=None):
     return rows[:limit] if limit else rows
 
 
+def norm_subject(s):
+    """과목명 정규형(학교 개설과목 ↔ 학과 권장과목 매칭용 공개 래퍼)."""
+    return _norm_subject(s)
+
+
+def major_subject_norm_set(name):
+    """학과명 → 권장 선택과목 정규형 set. 학교 개설과목 강조 매칭에 사용."""
+    rec = major_by_name(name)
+    if not rec:
+        return set()
+    subj = subjects_of_major(rec)
+    return {_norm_subject(s) for typ in ("일반", "진로", "융합") for s in subj[typ]}
+
+
+def top_schools_for_major(rec, sido=None, gugun=None, top_n=5):
+    """학과의 2022 권장 선택과목을 가장 많이 개설한 고교 Top-N(지역 필터 가능).
+    동점이 많아 지역으로 좁히는 게 유용(예: 내 시도). 매칭 동점은 학교 전체
+    개설과목수(n_subj) 많은 순으로 보조 정렬.
+    반환: {total, max_matched, n_full(해당 범위 최다 매칭 학교수),
+           n_candidates(매칭>0 학교수), schools:[{...matched,total,n_subj}]}."""
+    subj = subjects_of_major(rec)
+    want = {_norm_subject(s) for typ in ("일반", "진로", "융합") for s in subj[typ]}
+    total = len(want)
+    if not total:
+        return {"total": 0, "max_matched": 0, "n_full": 0,
+                "n_candidates": 0, "schools": []}
+    rows = []
+    for sid, off in SCHOOL_OFFERED.items():
+        r = SCHOOL_DB.get(sid, {})
+        if sido and r.get("sido") != sido:
+            continue
+        if gugun and r.get("gugun") != gugun:
+            continue
+        m = len(want & off)
+        if m <= 0:
+            continue
+        rows.append({"shl_idf_cd": sid, "school": r.get("school", ""),
+                     "sido": r.get("sido", ""), "gugun": r.get("gugun", ""),
+                     "matched": m, "total": total, "n_subj": r.get("n_subj", 0)})
+    rows.sort(key=lambda x: (-x["matched"], -x["n_subj"],
+                             x["sido"], x["gugun"], x["school"]))
+    max_matched = rows[0]["matched"] if rows else 0
+    n_full = sum(1 for x in rows if x["matched"] == max_matched)
+    return {"total": total, "max_matched": max_matched, "n_full": n_full,
+            "n_candidates": len(rows), "schools": rows[:top_n]}
+
+
 # 설치대학 학과명 정규화: build_univ_mapping.norm_major 와 동일 규칙 유지
 _U_SUFFIX = re.compile(r"(학과|학부|학전공|전공|과|학)$")
 _U_PAREN = re.compile(r"[\(\（].*?[\)\）]")
