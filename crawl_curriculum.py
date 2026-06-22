@@ -93,7 +93,7 @@ def download_item05(session, idf, year, dest_dir, max_seq=12, retries=3, pause=0
     """JG_HANGMOK_CD=05 아래 FILE_SEQ를 끝까지 열거해 모든 첨부를 저장.
     반환: [(filename, ext, bytes, is_curriculum)]"""
     saved = []
-    for seq in range(1, max_seq + 1):
+    for seq in range(0, max_seq + 1):   # FILE_SEQ는 0부터 시작(첫 첨부가 0번인 학교 다수)
         params = {"SHL_IDF_CD": idf, "JG_BURYU_CD": "JG020", "JG_HANGMOK_CD": "05",
                   "JG_GUBUN": "1", "JG_YEAR": str(year), "JG_CHASU": "1",
                   "USE_YN": "Y", "FILE_SEQ": str(seq)}

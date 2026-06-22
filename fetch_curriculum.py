@@ -54,7 +54,7 @@ def fetch_curriculum_files(s, shl_idf_cd, year, max_seq=10):
     반환: [{seq, filename, ext, intake_year, revision, path}]"""
     OUT.mkdir(exist_ok=True)
     found = []
-    for seq in range(1, max_seq + 1):
+    for seq in range(0, max_seq + 1):   # FILE_SEQ 0부터(첫 첨부가 0번인 학교 다수)
         params = {"SHL_IDF_CD": shl_idf_cd, "JG_BURYU_CD": "JG020",
                   "JG_HANGMOK_CD": "05", "JG_GUBUN": "1", "JG_YEAR": str(year),
                   "JG_CHASU": "1", "USE_YN": "Y", "FILE_SEQ": str(seq)}

@@ -7,8 +7,14 @@
 ---
 
 ## 0. 현재 상태 (한 줄)
-전국 고교 2,478개 중 **1,050개교의 개설과목 추출 완료** → `subjects_by_school.json`.
-**추천엔진 연결 완료(2026-05-30)**: `recommender.subjects_of_major()`/`subject_availability()`/`school_options()` + `app.py` 사이드바 학교선택 → 학과카드에 선택과목 개설 ✅/⬜ 표시. 남은 건 **2026 데이터 보강·커버리지 향상**(아래 §7-2,3).
+> **[2026-06-22 갱신]** 커버리지 대폭 상승: 전국 2,536교 중 **2,287개교(90%) 개설과목 보유** →
+> `schools.db`(2025∪2026 병합, school_subjects 139,648행, build 2026-06-22). 연도분포 2025 67·2025·2026 983·2026 1237.
+> §2-2의 **`FILE_SEQ=0` 누락 버그 수정**으로 no_file 학교 대거 회수 + 2026 공시 병합이 핵심. 이전 1,050(05-30)→1,578(06-10)→**2,287**.
+
+전국 고교 2,478개 중 **1,050개교 추출**은 최초(2026-05-30) 수치였고, 위 갱신으로 2,287교로 확대됨.
+**추천엔진 연결 완료(2026-05-30)**: `recommender.subjects_of_major()`/`subject_availability()`/`school_options()`/
+`top_schools_for_major()` + `app.py` 모달에서 선택과목 개설 표시·권장과목 최다 개설 고교 추천.
+입력은 **`schools.db`(SQLite) 우선**, 없으면 병합 JSON 폴백. 남은 건 **잔여 ~249교 커버리지 향상**(아래 §7-3).
 
 ---
 
@@ -41,7 +47,7 @@
 - 파라미터(교육과정 편성 항목):
   `SHL_IDF_CD=<uuid>` `JG_BURYU_CD=JG020` `JG_HANGMOK_CD=05` `JG_GUBUN=1` `JG_YEAR=2025` `JG_CHASU=1` `USE_YN=Y` `FILE_SEQ=<1..N>`
 - 동작: 실제 첨부면 `Content-Type: application/octet-stream` + `Content-Disposition`에 파일명(`OOOO학년도 입학생 …`). 없으면 302.
-- **FILE_SEQ는 중간 빈 번호 가능** → 끝까지(예: 1~12) 열거해야 함(끊으면 누락).
+- **FILE_SEQ는 반드시 0부터** 열거(`range(0, …)`). 첫 첨부가 SEQ=0인 학교가 다수 — 1부터 시작하면 통째로 누락됨(2026-06 발견, no_file 750교의 대부분이 이 버그였음). 중간 빈 번호도 가능하니 0~12 끝까지 훑을 것.
 - `JG_HANGMOK_CD=05` = 공시항목 "2-가 학교교육과정 편성·운영·평가". **학교마다 여기에 올린 파일이 제각각**(배당표 XLSX, 편제표 PDF/HWP, 또는 학교교육계획·학사일정만). 형식·내용 표준화 안 됨.
 
 ### 2-3. 점검 윈도우
@@ -97,14 +103,13 @@
 ---
 
 ## 7. 다음 작업 (TODO)
-1. **[완료 2026-05-30] 추천엔진 연결**: `recommender.py`에 로더·조회 함수 추가.
-   - `_norm_subject()` 로마숫자(Ⅰ→I)·공백 정규화로 어휘/DB/학과 3측 일관 매칭.
-   - `subjects_of_major(rec)` 학과 `선택과목2022` → vocab 정규형 필터 → {일반/진로/융합}.
-   - `subject_availability(rec, shl_idf_cd)` 과목별 개설여부 O/X + 요약(n_offered/n_total).
-   - `school_sidos()`/`school_options(sido)` UI용 학교목록(데이터 보유 1,050교).
-   - `app.py` 사이드바: 시도→학교 선택. 학과카드: 학교 선택 시 ✅/⬜, 미선택 시 과목목록만. 미개설은 공동교육과정·교실온닷 안내.
-2. **2026 데이터 보강**(05-30 이후): `crawl_curriculum.py --year 2026` 재수집 → `parse_curriculum.py` 재파싱 → 커버리지↑, 미보유교 회수.
-3. **커버리지 향상 옵션**: 다른 공시항목 탐색(편제표가 05 외에 있는 학교), narrative 문서의 표 영역 파싱 강화, NEIS 고등학교시간표 OpenAPI(실제 편성 과목, 무료키) 병행.
+1. **[완료 2026-05-30] 추천엔진 연결**: `recommender.py` 로더·조회 함수. `top_schools_for_major()`(권장과목 최다 개설 고교) 추가됨(2026-06-22).
+2. **[완료 2026-06-22] 2026 보강 + FILE_SEQ 버그 수정**: `crawl_curriculum.py --year 2026` 재수집 +
+   `FILE_SEQ`를 0부터 열거하도록 수정(no_file 회수) → `parse_curriculum.py` 재파싱 → `merge_years.py`로 2025∪2026 병합 →
+   `build_db.py`로 `schools.db` 재생성. **커버리지 1,050→1,578→2,287교(90%).** `run_pipeline.py`로 일괄 실행.
+   - 산출 정리: 연도별 임시파일(`*_2025`, `*_2026_0604`)은 병합본으로 통합되어 삭제됨.
+3. **[남음] 잔여 ~249교 커버리지 향상**: 첨부가 narrative(계획서·학사일정)뿐이거나 첨부 없는 학교.
+   옵션 — 다른 공시항목 탐색, narrative 표 영역 파싱 강화, **NEIS 고등학교시간표 OpenAPI**(실제 편성 과목, 무료키) 병행.
 
 ---
 

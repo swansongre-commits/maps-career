@@ -39,7 +39,7 @@
 | `mapping_univ.json` | **설치대학 매핑(4년제 모집단위 기준).** {정규화학과명: {names, univ_count, univs:[{지역,대학명,전형:[...],인원,분류}]}}. 커버리지 70.6%(298/422). 미매칭(전문대·교양학부)은 `mapping_major.csv` 개설대학으로 폴백 |
 | **고교 개설과목 (학교알리미)** | ↓ 수집·파싱 상세는 **`HANDOFF_고교개설과목.md`** 참조 |
 | `school_list.csv` | 전국 고교 2,536교 시드(school_name, shl_idf_cd, sido, gugun…) |
-| **`schools.db`** | **추천엔진 입력(개설여부, 현행).** SQLite. `recommender._load_school_subjects_sqlite()`가 schools(2,536)·school_subjects(93,351행)·vocab(154)·meta 테이블에서 has_curriculum=1 학교(**1,578교**, 2025∪2026 병합)를 로드. 없으면 `subjects_by_school_merged.json`→`subjects_by_school.json` 폴백 |
+| **`schools.db`** | **추천엔진 입력(개설여부, 현행).** SQLite. `recommender._load_school_subjects_sqlite()`가 schools(2,536)·school_subjects(139,648행)·vocab(154)·meta 테이블에서 has_curriculum=1 학교(**2,287교**, 2025∪2026 병합)를 로드. 없으면 `subjects_by_school_merged.json`→`subjects_by_school.json` 폴백 |
 | `subjects_by_school_merged.{json,csv}` | schools.db 빌드 전 병합 산출물(폴백 입력). {shl_idf_cd:{school,sido,gugun,subjects:{일반/진로/융합:[...]},n_subj}} |
 | `vocab_2022.json` | 154개 타깃 과목 사전(`선택과목2022`에서 추출). 학과·DB·학교 매칭 어휘 |
 | `crawl_curriculum.py` `parse_curriculum.py` `build_vocab.py` | [1차]다운로드 / [2차]파싱 / 어휘생성 스크립트 (상세 HANDOFF) |
@@ -50,8 +50,8 @@
 | `build_vocab.py` → `vocab_2022.json` | mapping_major의 `선택과목2022`→154개 타깃과목 사전(추천엔진과 정렬) |
 | `parse_curriculum.py` | **[2차]** 형식별 텍스트추출(XLSX/PDF/HWP/HWPX)→어휘 경계매칭→학교별 과목셋 |
 | `subjects_by_school.json` | 2차 파싱 결과(연도단독). {shl_idf_cd:{school,sido,subjects:{일반/진로/융합},n_subj}} |
-| `merge_years.py` → `subjects_by_school_merged.{json,csv}` | 2025∪2026 병합(어느 해든 개설=개설). 1,578교 |
-| `build_db.py` → **`schools.db`** | **최종 SQLite DB(추천엔진 입력).** 테이블: schools(2,536)·school_subjects(93,351행)·vocab(154)·meta. idf/subject 인덱스 |
+| `merge_years.py` → `subjects_by_school_merged.{json,csv}` | 2025∪2026 병합(어느 해든 개설=개설). 2,287교 |
+| `build_db.py` → **`schools.db`** | **최종 SQLite DB(추천엔진 입력).** 테이블: schools(2,536)·school_subjects(139,648행)·vocab(154)·meta. idf/subject 인덱스 |
 | `run_pipeline.py` | 크롤→파싱→병합→DB 순차 드라이버(절전금지 내장, 재개 가능). `python run_pipeline.py` |
 | `parse_status.xlsx` | 2차 파싱현황(매칭과목수/미파싱사유) |
 | `fetch_curriculum.py` | 단일학교 데모/엔드포인트 검증용(참고) |
@@ -78,7 +78,7 @@
 4. **설명가능**: 매칭된 term·순위·점수·경로(공시/쉬운말)를 근거로 함께 반환·표시.
 5. **연계페어**: 상위 학과×직업의 **공시키워드 교집합** 크기로 정렬.
 - 부가정보: **설치대학**은 `mapping_univ.json`(`recommender.universities_for(name)` → 지역·대학명·전형·인원 구조화)을 우선 사용하고, 미매칭 학과는 `mapping_major.csv` 개설대학으로 폴백. `mapping_job.csv`(관련학과).
-- **고교 선택과목 개설여부(D) — 연결 완료**: 사이드바에서 학생 고교(시도→학교) 선택 시, 추천 학과의 `선택과목2022`가 그 고교에 개설됐는지 ✅/⬜ 표시. `recommender.subjects_of_major(rec)`(vocab 정규형 필터로 {일반/진로/융합} 파싱) + `subject_availability(rec, shl_idf_cd)`(과목별 개설여부+요약), `school_options(sido, gugun)`(데이터 보유 **1,578교**, 시도→시군구→학교 3depth). 입력은 **`schools.db`**(SQLite) 우선·병합 JSON 폴백. 정규화 `_norm_subject()`(로마숫자·공백)로 어휘/DB/학과 3측 일관 매칭. 미개설 과목은 공동교육과정·교실온닷 안내. (학교알리미 2025·2026 공시 병합 기준.)
+- **고교 선택과목 개설여부(D) — 연결 완료**: 사이드바에서 학생 고교(시도→학교) 선택 시, 추천 학과의 `선택과목2022`가 그 고교에 개설됐는지 ✅/⬜ 표시. `recommender.subjects_of_major(rec)`(vocab 정규형 필터로 {일반/진로/융합} 파싱) + `subject_availability(rec, shl_idf_cd)`(과목별 개설여부+요약), `school_options(sido, gugun)`(데이터 보유 **2,287교**, 시도→시군구→학교 3depth). 입력은 **`schools.db`**(SQLite) 우선·병합 JSON 폴백. 정규화 `_norm_subject()`(로마숫자·공백)로 어휘/DB/학과 3측 일관 매칭. 미개설 과목은 공동교육과정·교실온닷 안내. (학교알리미 2025·2026 공시 병합 기준.)
 - 대안: vectorizer_meta로 코사인 유사도, LLM(`career_recommender.py`의 긍정/부정 추출)로 발화이해 고도화.
 
 ## 7. 실행
@@ -101,7 +101,7 @@ python extract_candidates.py    # 불용어/합성어 후보 재점검
   - [x] **1차 수집**: `crawl_curriculum.py`로 전국 고교 항목05 첨부 다운로드(1,780/2,478교 파일보유, 1.5GB). `collection_status.xlsx`.
   - [x] **2차 파싱**: `parse_curriculum.py`로 형식별(XLSX/PDF/HWP/HWPX) 텍스트추출→`vocab_2022.json`(154과목) 매칭 → `subjects_by_school.json`(**1,050교 개설과목 추출**).
   - [x] **추천엔진 연결**: `recommender.subjects_of_major()`/`subject_availability()`/`school_options()` + `app.py` 사이드바 학교선택 → 학과카드 선택과목 개설 ✅/⬜. 미개설은 공동교육과정·교실온닷 안내.
-  - [x] **2026 보강(완료, 06-10)**: `crawl_curriculum.py --year 2026` 재수집·재파싱 → `merge_years.py`로 2025∪2026 병합 → `build_db.py`로 **`schools.db`** 생성. 커버리지 1,050→**1,578교**. `run_pipeline.py` 드라이버로 일괄 실행.
+  - [x] **2026 보강 + FILE_SEQ 버그수정(완료, 06-22)**: `crawl_curriculum.py --year 2026` 재수집 + `FILE_SEQ`를 0부터 열거하도록 수정(no_file 대거 회수) → `parse_curriculum.py` 재파싱 → `merge_years.py`로 2025∪2026 병합 → `build_db.py`로 **`schools.db`** 재생성. 커버리지 1,050→1,578→**2,287교(90%)**. `run_pipeline.py` 드라이버로 일괄 실행.
 - [ ] **합성어 꼬리 보강**: `extract_candidates.py`의 comp_freq 중·하위 구간에서 저빈도 특화어를 `compounds.json`에 추가 → `build_keywords.py` 재실행.
 - [x] **설치대학 파싱 고도화**: `설치모집단위 리스트.xlsx` → `build_univ_mapping.py` → `mapping_univ.json`(지역·대학·전형·인원). `recommender.universities_for()`로 조회, app.py에서 지역별 렌더. 미매칭은 구 개설대학 폴백.
 - [ ] **Okt 전환**(부장님 기존 환경과 통일 시) — tokenizer.py 명사추출부만 교체 후 build_keywords 재실행.
