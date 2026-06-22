@@ -61,7 +61,7 @@ def univ_link(name):
 
 
 def pair_card_html(p):
-    """연계 진로 1건 → 등식 카드 HTML (📚학과 + 💼직업 = 🧭진로 · 공통 키워드)."""
+    """연계 진로 1건 → 등식 카드 HTML (:material/menu_book:학과 + :material/work:직업 = :material/explore:진로 · 공통 키워드)."""
     strong = " cp-strong" if p["overlap_n"] >= 3 else ""
     if p["overlap"]:
         chips = "".join(f'<span class="cp-chip">{k}</span>' for k in p["overlap"])
@@ -128,6 +128,8 @@ CSS = f"""
 <style>
 .stApp {{ background: {FABRIK['bg']}; color: {FABRIK['text']}; }}
 h1, h2, h3, h4, h5, h6 {{ color: {FABRIK['text']}; letter-spacing: -0.2px; }}
+/* 페이지 제목 — 과도하게 큰 기본 h1 축소(에디토리얼 톤) */
+.stApp h1 {{ font-size: 1.85rem !important; font-weight: 800; }}
 section[data-testid="stSidebar"] {{ background: {FABRIK['surface']}; border-right: 1px solid {FABRIK['border']}; }}
 
 /* 결과 칼럼(테두리 컨테이너) — 8px 라운드 통일, 은은한 패널 그림자 */
@@ -365,7 +367,7 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 
 /* ── 반응형: 태블릿·모바일에서 과대 폰트/여백 축소 ── */
 @media (max-width: 1024px) {{
-    .stApp h1 {{ font-size: 1.9rem !important; }}
+    .stApp h1 {{ font-size: 1.7rem !important; }}
     .stApp h2 {{ font-size: 1.35rem !important; }}
     .stApp h3 {{ font-size: 1.15rem !important; }}
     .stApp h4 {{ font-size: 1.02rem !important; }}
@@ -574,7 +576,7 @@ def _render_major_detail(r):
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
     if univ.get("univ_count", 0) > 0:
-        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳)  ·  대학명 클릭 시 EBSi"):
+        with st.expander(f":material/account_balance: 설치대학 ({univ['univ_count']}곳)  ·  대학명 클릭 시 EBSi"):
             rows = []
             for region, unis in univ["by_region"].items():
                 links = ", ".join(univ_link(u["대학명"]) for u in unis)
@@ -587,7 +589,7 @@ def _render_major_detail(r):
         uni = extra.get("개설대학", "")
         if uni:
             by_region, total = parse_universities_legacy(uni)
-            with st.expander(f"🏛️ 개설대학 ({total}곳)  ·  대학명 클릭 시 EBSi"):
+            with st.expander(f":material/account_balance: 개설대학 ({total}곳)  ·  대학명 클릭 시 EBSi"):
                 for region, unis in list(by_region.items())[:8]:
                     links = ", ".join(univ_link(u) for u in sorted(set(unis))[:6])
                     st.markdown(f"- **{region}**: {links}", unsafe_allow_html=True)
@@ -595,7 +597,7 @@ def _render_major_detail(r):
     subj = R.subjects_of_major(r)
     n_subj = sum(len(v) for v in subj.values())
     if n_subj:
-        with st.expander(f"📘 2022 선택과목 ({n_subj}개)"):
+        with st.expander(f":material/menu_book: 2022 선택과목 ({n_subj}개)"):
             for typ in ("일반", "진로", "융합"):
                 items = subj[typ]
                 if items:
@@ -605,7 +607,7 @@ def _render_major_detail(r):
     rel = extra.get("관련직업", "")
     if rel:
         jobs = R.split_related_jobs(rel)
-        with st.expander(f"💼 관련 직업 ({len(jobs)})"):
+        with st.expander(f":material/work: 관련 직업 ({len(jobs)})"):
             st.markdown(", ".join(jobs))
 
 
@@ -614,7 +616,7 @@ def _render_univ_block(r):
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
     if univ.get("univ_count", 0) > 0:
-        with st.expander(f"🏛️ 설치대학 ({univ['univ_count']}곳)  ·  대학명 클릭 시 EBSi"):
+        with st.expander(f":material/account_balance: 설치대학 ({univ['univ_count']}곳)  ·  대학명 클릭 시 EBSi"):
             rows = []
             for region, unis in univ["by_region"].items():
                 links = ", ".join(univ_link(u["대학명"]) for u in unis)
@@ -626,7 +628,7 @@ def _render_univ_block(r):
         uni = extra.get("개설대학", "")
         if uni:
             by_region, total = parse_universities_legacy(uni)
-            with st.expander(f"🏛️ 개설대학 ({total}곳)  ·  대학명 클릭 시 EBSi"):
+            with st.expander(f":material/account_balance: 개설대학 ({total}곳)  ·  대학명 클릭 시 EBSi"):
                 for region, unis in list(by_region.items())[:8]:
                     links = ", ".join(univ_link(u) for u in sorted(set(unis))[:6])
                     st.markdown(f"- **{region}**: {links}", unsafe_allow_html=True)
@@ -722,7 +724,7 @@ def _xview_major(name):
     if not r:
         st.info("학과 정보를 찾을 수 없어요.")
         return
-    st.markdown(f"### 📚 {r['name']}")
+    st.markdown(f"### :material/menu_book: {r['name']}")
     st.markdown("**대표 키워드**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     _render_univ_block(r)
@@ -731,7 +733,7 @@ def _xview_major(name):
     if pairs:
         # 과목 버튼 + 선택 과목의 설치 고교를 같은 박스 안에(하나의 영역)
         with st.container(border=True):
-            st.markdown(f"**📘 2022 선택과목 ({len(pairs)})** — 과목을 누르면 바로 아래에 설치 "
+            st.markdown(f"**:material/menu_book: 2022 선택과목 ({len(pairs)})** — 과목을 누르면 바로 아래에 설치 "
                         "고교가 표시됩니다. 칩 앞 뱃지는 과목 유형(일반·진로·융합)이에요.")
             cur = st.session_state.get("xmaj_sub")
             cur_subj = cur[1] if (isinstance(cur, tuple) and cur[0] == r["name"]) else None
@@ -756,14 +758,14 @@ def _xview_major(name):
                     f"background:{FABRIK['navy']} !important;border-color:{FABRIK['navy']} !important;}}"
                     f"[class~='st-key-xmajsub_{code}_{sel_i}'] button p{{color:#fff !important;font-weight:700;}}"
                     f"</style>", unsafe_allow_html=True)
-                st.markdown(f"##### 📘 {cur_subj} · 설치 고교")
+                st.markdown(f"##### :material/menu_book: {cur_subj} · 설치 고교")
                 _subject_school_table(cur_subj, "xmaj")
 
     # 이 학과 권장과목을 가장 많이 개설한 고교 Top-N (지역 필터 + 시도·시군구 표시)
     subj_chk = R.subjects_of_major(r)
     if any(subj_chk.values()):
         with st.container(border=True):
-            st.markdown("**🏆 이 학과 권장과목을 가장 많이 개설한 고교**")
+            st.markdown("**:material/trophy: 이 학과 권장과목을 가장 많이 개설한 고교**")
             tc1, tc2 = st.columns(2)
             with tc1:
                 t_sido = _safe_select("시도", ["전국"] + R.school_sidos(), "xmajtop_sido")
@@ -793,12 +795,12 @@ def _xview_major(name):
 
     rel = R.major_extra(r).get("관련직업", "")
     if rel:
-        with st.expander("💼 관련 직업"):
+        with st.expander(":material/work: 관련 직업"):
             st.markdown(", ".join(R.split_related_jobs(rel)))
 
 
 def _xview_subject(name):
-    st.markdown(f"### 📘 {name}  ·  설치 고교")
+    st.markdown(f"### :material/menu_book: {name}  ·  설치 고교")
     _subject_school_table(name, "xsub")
 
 
@@ -812,7 +814,7 @@ def _stack_recent_major():
 
 def _xview_school(sid, name):
     info = R.school_subjects(sid)
-    st.markdown(f"### 🏫 {info['school']}  ·  {info['sido']} {info['gugun']}")
+    st.markdown(f"### :material/apartment: {info['school']}  ·  {info['sido']} {info['gugun']}")
     # 거쳐온 학과가 있으면 그 학과 권장과목을 강조(테두리+배경)
     hl_major = _stack_recent_major()
     hl_set = R.major_subject_norm_set(hl_major) if hl_major else set()
@@ -845,11 +847,11 @@ def _xview_school(sid, name):
 
 def _xview_job(name):
     extra = R.job_extra({"id": "", "name": name})
-    st.markdown(f"### 💼 {name}")
+    st.markdown(f"### :material/work: {name}")
     rel = extra.get("관련학과", "")
     if rel:
         majors = R.split_related_majors(rel)
-        st.markdown(f"**📚 관련 학과 ({len(majors)})** — 학과를 누르면 상세를 봅니다")
+        st.markdown(f"**:material/menu_book: 관련 학과 ({len(majors)})** — 학과를 누르면 상세를 봅니다")
         cols = st.columns(2)
         for i, m in enumerate(majors):
             with cols[i % 2]:
@@ -858,16 +860,16 @@ def _xview_job(name):
     cert = extra.get("관련자격", "")
     if cert:
         certs = [c.strip() for c in cert.replace("·", ",").split(",") if c.strip()]
-        with st.expander(f"📜 관련 자격 ({len(certs)})"):
+        with st.expander(f":material/description: 관련 자격 ({len(certs)})"):
             st.markdown(", ".join(certs))
 
 
 def _xcrumb(v):
-    return {"major": "📚 ", "subject": "📘 ", "school": "🏫 ",
-            "job": "💼 "}.get(v[0], "") + (v[2] if v[0] == "school" else v[1])
+    return {"major": ":material/menu_book: ", "subject": ":material/menu_book: ", "school": ":material/apartment: ",
+            "job": ":material/work: "}.get(v[0], "") + (v[2] if v[0] == "school" else v[1])
 
 
-@st.dialog("🔎 탐색", width="large")
+@st.dialog(":material/search: 탐색", width="large")
 def explorer_dialog():
     """과목↔학교↔학과↔직업 탐색 — 단일 모달 + 네비 스택(reopen 패턴).
     어느 탭에서 항목을 클릭하든 이 모달로 상세가 뜬다. 깊이 이동은 _xgo가
@@ -884,7 +886,7 @@ def explorer_dialog():
     with hc3:
         if st.button("닫기 ✕", use_container_width=True, key="x_close"):
             _xclose()
-    st.markdown("#### 🔎 탐색")
+    st.markdown("#### :material/search: 탐색")
     st.caption("경로: " + "  ›  ".join(_xcrumb(v) for v in stack))
     top = stack[-1]
     if top[0] == "major":
@@ -900,7 +902,7 @@ def explorer_dialog():
 def _render_school_detail(r):
     """학교 상세 — 개설과목(유형별), 각 과목 클릭 시 연관 학과 모달."""
     info = R.school_subjects(r["shl_idf_cd"])
-    st.markdown(f"### 🏫 {info['school']}  ·  {info['sido']} {info['gugun']}")
+    st.markdown(f"### :material/apartment: {info['school']}  ·  {info['sido']} {info['gugun']}")
     st.caption(f"개설 과목 {info['n_subj']}개 (학교알리미 2025·2026 병합 기준). "
                "과목을 누르면 그 과목과 연관된 학과를 보여줍니다.")
     with st.container(key="schd_subjgrid"):
@@ -923,18 +925,18 @@ def _render_job_detail(r):
     rel = extra.get("관련학과", "")
     if rel:
         majors = R.split_related_majors(rel)
-        with st.expander(f"📚 관련 학과 ({len(majors)})", expanded=True):
+        with st.expander(f":material/menu_book: 관련 학과 ({len(majors)})", expanded=True):
             st.markdown(", ".join(majors))
     cert = extra.get("관련자격", "")
     if cert:
         certs = [c.strip() for c in cert.replace("·", ",").split(",") if c.strip()]
-        with st.expander(f"📜 관련 자격 ({len(certs)})"):
+        with st.expander(f":material/description: 관련 자격 ({len(certs)})"):
             st.markdown(", ".join(certs))
 
 
 @st.dialog("상세 정보", width="large")
 def detail_modal(kind, r):
-    icon = "📚" if kind == "major" else "💼"
+    icon = ":material/menu_book:" if kind == "major" else ":material/work:"
     st.markdown(f"### {icon} {r['name']}")
     st.markdown("**추천 근거**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
@@ -947,7 +949,7 @@ def detail_modal(kind, r):
 
 @st.dialog("과목 연관 학과", width="large")
 def subject_majors_modal(subject_name):
-    st.markdown(f"### 📘 {subject_name}")
+    st.markdown(f"### :material/menu_book: {subject_name}")
     sort_score = st.toggle("키워드 점수순 정렬", value=True, key="sm_sort",
                            help="끄면 가나다순으로 봅니다.")
     majors = R.majors_for_subject(subject_name, sort_by_score=sort_score)
@@ -965,12 +967,12 @@ def major_info_modal(name):
     if not r:
         st.info("학과 정보를 찾을 수 없어요.")
         return
-    st.markdown(f"### 📚 {r['name']}")
+    st.markdown(f"### :material/menu_book: {r['name']}")
     st.markdown("**대표 키워드**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     st.markdown("---")
     _render_major_detail(r)
-    with st.expander("🏫 설치 고교 보기 (선택과목 개설 학교)"):
+    with st.expander(":material/apartment: 설치 고교 보기 (선택과목 개설 학교)"):
         subj = R.subjects_of_major(r)
         flat = [s for v in subj.values() for s in v]
         st.caption("이 학과의 권장 선택과목이 전국 몇 개 고교에 개설돼 있는지")
@@ -980,7 +982,7 @@ def major_info_modal(name):
 
 
 # %% [헤더 · 사이드바]
-st.title("🎓 진로 추천")
+st.title(":material/school: 진로 추천")
 st.caption("관심사 발화로 **학과·직업**을 추천받고, **학교별 개설과목**과 **학과 정보**를 함께 탐색하세요.")
 
 with st.sidebar:
@@ -1002,7 +1004,7 @@ with st.sidebar:
                 f"{via_badge_html('쉬운말')} 쉬운말로 매칭", unsafe_allow_html=True)
 
 TAB_REC, TAB_SCHOOL, TAB_MAJOR = st.tabs(
-    ["🎯 학과·직업 추천", "🏫 학교별 설치과목", "📚 학과별 정보"])
+    [":material/target: 학과·직업 추천", ":material/apartment: 학교별 설치과목", ":material/menu_book: 학과별 정보"])
 
 
 # %% [탭1 — 학과·직업 추천]
@@ -1033,7 +1035,7 @@ with TAB_REC:
         st.info("관심사를 입력하고 **추천 받기**를 누르면 결과가 여기에 표시됩니다.")
     else:
         meta = out.get("meta", {})
-        st.markdown("#### 🔑 키워드")
+        st.markdown("#### :material/key: 키워드")
         mode_label = "🤖 LLM 발화 이해" if meta.get("mode") == "llm" else "🔧 규칙 기반"
         st.caption(f"추출 방식: {mode_label}"
                    + (f"  ·  {meta['rationale']}" if meta.get("rationale") else ""))
@@ -1051,14 +1053,14 @@ with TAB_REC:
                         unsafe_allow_html=True)
             st.caption("싫어하거나 어려워하는 것은 추천에서 제외했어요.")
 
-        st.markdown("#### 🎯 추천 결과")
+        st.markdown("#### :material/target: 추천 결과")
         st.caption("추천 학과나 직업을 클릭하면 상세한 내용을 볼 수 있습니다.")
         col1, col2 = st.columns(2)
         top_m = out["majors"][0]["score"] if out["majors"] else 1
         top_j = out["jobs"][0]["score"] if out["jobs"] else 1
         with col1:
             with st.container(border=True):
-                st.subheader("📚 추천 학과")
+                st.subheader(":material/menu_book: 추천 학과")
                 if not out["majors"]:
                     st.info("매칭되는 학과가 없어요.")
                 for i, r in enumerate(out["majors"], 1):
@@ -1072,7 +1074,7 @@ with TAB_REC:
                                     unsafe_allow_html=True)
         with col2:
             with st.container(border=True):
-                st.subheader("💼 추천 직업")
+                st.subheader(":material/work: 추천 직업")
                 if not out["jobs"]:
                     st.info("매칭되는 직업이 없어요.")
                 for i, r in enumerate(out["jobs"], 1):
@@ -1086,7 +1088,7 @@ with TAB_REC:
                                     unsafe_allow_html=True)
 
         st.markdown("---")
-        st.subheader("🧭 추천 진로")
+        st.subheader(":material/explore: 추천 진로")
         st.caption("추천 학과와 직업이 **공통 키워드**로 이어지는 진로 조합입니다. "
                    "공통 키워드가 많을수록(진하게 강조) 연결이 강합니다.")
         if not out["pairs"]:
@@ -1103,7 +1105,7 @@ with TAB_SCHOOL:
                     key="school_tab_mode")
 
     if mode == "과목으로 찾기":
-        st.markdown("##### 📘 과목으로 찾기 — 유형 → 과목을 고르면 "
+        st.markdown("##### :material/menu_book: 과목으로 찾기 — 유형 → 과목을 고르면 "
                     "연관 학과·설치대학·설치학교를 보여줍니다")
         subs = R.subject_list()
         type_opts = ["일반", "진로", "융합"]
@@ -1120,13 +1122,13 @@ with TAB_SCHOOL:
             s = cands[labels.index(pick)]
             subject_name = s["name"]
             st.markdown("---")
-            st.markdown(f"### 📘 {subject_name}  ·  {ftype} 선택")
+            st.markdown(f"### :material/menu_book: {subject_name}  ·  {ftype} 선택")
 
             # ── 연관 학과 (정렬 토글) ──
             sort_score = st.toggle("학과 키워드 점수순 정렬", value=False,
                                    key="subj_sort", help="끄면 가나다순")
             majors = R.majors_for_subject(subject_name, sort_by_score=sort_score)
-            st.markdown(f"#### 🎓 연관 학과 ({len(majors)})")
+            st.markdown(f"#### :material/school: 연관 학과 ({len(majors)})")
             st.caption("이 과목을 2022 권장 선택과목으로 두는 학과")
             if len(majors) > 8:
                 show_n = st.slider("표시할 학과 수", 4, min(30, len(majors)),
@@ -1138,7 +1140,7 @@ with TAB_SCHOOL:
                     # 연관 학과의 설치대학
                     uinfo = R.universities_for(m["name"])
                     if uinfo.get("univ_count", 0) > 0:
-                        st.markdown(f"**🏛️ 설치대학 {uinfo['univ_count']}곳** "
+                        st.markdown(f"**:material/account_balance: 설치대학 {uinfo['univ_count']}곳** "
                                     "· 대학명 클릭 시 EBSi")
                         for region, unis in list(uinfo["by_region"].items()):
                             names_u = ", ".join(univ_link(u["대학명"]) for u in unis[:10])
@@ -1146,14 +1148,14 @@ with TAB_SCHOOL:
                             st.markdown(f"- **{region}** ({len(unis)}): {names_u}{more}",
                                         unsafe_allow_html=True)
                     else:
-                        st.caption("🏛️ 설치대학 정보 없음(전문대·교양학부 등)")
+                        st.caption(":material/account_balance: 설치대학 정보 없음(전문대·교양학부 등)")
 
             # ── 이 과목을 개설한 고교 — 탐색 패널과 동일한 지역그룹 칩 그리드 ──
-            st.markdown("#### 🏫 이 과목 설치학교")
+            st.markdown("#### :material/apartment: 이 과목 설치학교")
             _subject_school_table(subject_name, "subjpage")
 
     else:  # 학교로 찾기
-        st.markdown("##### 🏫 학교로 찾기 — 학교를 고르면 개설과목을 보여줍니다")
+        st.markdown("##### :material/apartment: 학교로 찾기 — 학교를 고르면 개설과목을 보여줍니다")
         sidos = R.school_sidos()
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -1179,7 +1181,7 @@ with TAB_SCHOOL:
 @st.fragment
 def render_major_info_tab():
     """분류 선택 시 이 영역만 재실행(전체 탭 리렌더 방지 → 반응 빠름)."""
-    st.markdown("##### 📚 학과별 정보 — 학과를 고르면 키워드·설치대학·선택과목을 보여줍니다")
+    st.markdown("##### :material/menu_book: 학과별 정보 — 학과를 고르면 키워드·설치대학·선택과목을 보여줍니다")
     names = R.major_names()
 
     # ── 검색 ──
@@ -1189,7 +1191,7 @@ def render_major_info_tab():
                            placeholder="예) 시각디자인, 기계, 간호",
                            label_visibility="collapsed")
     with qc2:
-        st.button("🔍 검색", use_container_width=True, key="major_search_btn")
+        st.button(":material/search: 검색", use_container_width=True, key="major_search_btn")
 
     # ── 분류로 찾기 (대 > 중 > 소) ──
     st.caption("분류로 찾기 — **대분류 → 중분류**까지 고르면 학과가 나타나고, 소분류를 고르면 더 좁혀집니다.")
@@ -1202,10 +1204,10 @@ def render_major_info_tab():
         if mq.strip():
             results = [n for n in results if mq.strip() in n]
         loc = f"{dae} › {jung}" + (f" › {so_sel}" if so_sel else "")
-        st.markdown(f"**📂 {loc}**  ·  {len(results)}개 학과")
+        st.markdown(f"**:material/category: {loc}**  ·  {len(results)}개 학과")
     elif mq.strip():
         results = [n for n in names if mq.strip() in n]
-        st.markdown(f"**🔎 검색 결과**  ·  {len(results)}개 학과")
+        st.markdown(f"**:material/search: 검색 결과**  ·  {len(results)}개 학과")
     else:
         results = None
         if dae and not jung:
