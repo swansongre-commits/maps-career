@@ -982,7 +982,8 @@ def major_info_modal(name):
 
 
 # %% [헤더 · 사이드바]
-st.title(":material/school: MAPS")
+st.title(":material/school: M.A.P.S")
+st.caption("Major · Aptitude · Path System  ·  학과 · 적성 · 진로 시스템")
 st.caption("나의 관심사로부터 진로진학까지 한번에")
 
 with st.sidebar:
@@ -1101,7 +1102,7 @@ with TAB_REC:
 # %% [탭2 — 학교별 설치과목: 과목으로 찾기 / 학교로 찾기]
 with TAB_SCHOOL:
     st.caption(f"학교알리미 2025·2026 공시 병합 · 데이터 보유 전국 {len(R.SCHOOL_DB):,}개교")
-    mode = st.radio("찾는 방법", ["과목으로 찾기", "학교로 찾기"], horizontal=True,
+    mode = st.radio("찾는 방법", ["학교로 찾기", "과목으로 찾기"], horizontal=True,
                     key="school_tab_mode")
 
     if mode == "과목으로 찾기":
