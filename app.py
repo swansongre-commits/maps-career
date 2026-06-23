@@ -982,8 +982,8 @@ def major_info_modal(name):
 
 
 # %% [헤더 · 사이드바]
-st.title(":material/school: 진로 추천")
-st.caption("관심사 발화로 **학과·직업**을 추천받고, **학교별 개설과목**과 **학과 정보**를 함께 탐색하세요.")
+st.title(":material/school: MAPS")
+st.caption("나의 관심사로부터 진로진학까지 한번에")
 
 with st.sidebar:
     st.subheader("설정")
