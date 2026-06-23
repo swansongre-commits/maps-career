@@ -16,7 +16,7 @@
 """
 import streamlit as st
 
-st.set_page_config(page_title="진로 추천", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="M.A.P.S", page_icon="🎓", layout="wide")
 
 # 참고: 크롬 자동 번역 팝업은 Streamlit Cloud에서 코드로 막기 어렵다(최초 HTML의
 # <html lang>을 제어할 수 없고, JS 주입은 컴포넌트 iframe 제약·타이밍으로 늦음).
