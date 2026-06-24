@@ -799,8 +799,26 @@ def _xview_major(name):
             st.markdown(", ".join(R.split_related_jobs(rel)))
 
 
+def _render_achievements(name):
+    """과목 성취기준(무엇을 배우는지) — 교과·코드+내용 목록. 매칭 실패 시 생략."""
+    ach = R.achievements_for_subject(name)
+    if not ach or not ach.get("items"):
+        return
+    items = ach["items"]
+    head = f":material/checklist: 이 과목에서 배우는 것 · 성취기준 {len(items)}개"
+    if ach.get("gwa"):
+        head += f"  ·  {ach['gwa']}"
+    with st.expander(head, expanded=True):
+        st.caption("2022 개정 교육과정 성취기준 — 이 과목에서 무엇을 배우는지 보여줍니다.")
+        for it in items:
+            code, txt = it.get("code", ""), it.get("text", "")
+            st.markdown(f"- `{code}` {txt}" if code else f"- {txt}")
+
+
 def _xview_subject(name):
-    st.markdown(f"### :material/menu_book: {name}  ·  설치 고교")
+    st.markdown(f"### :material/menu_book: {name}")
+    _render_achievements(name)
+    st.markdown("##### :material/apartment: 설치 고교")
     _subject_school_table(name, "xsub")
 
 
@@ -897,27 +915,6 @@ def explorer_dialog():
         _xview_school(top[1], top[2])
     elif top[0] == "job":
         _xview_job(top[1])
-
-
-def _render_school_detail(r):
-    """학교 상세 — 개설과목(유형별), 각 과목 클릭 시 연관 학과 모달."""
-    info = R.school_subjects(r["shl_idf_cd"])
-    st.markdown(f"### :material/apartment: {info['school']}  ·  {info['sido']} {info['gugun']}")
-    st.caption(f"개설 과목 {info['n_subj']}개 (학교알리미 2025·2026 병합 기준). "
-               "과목을 누르면 그 과목과 연관된 학과를 보여줍니다.")
-    with st.container(key="schd_subjgrid"):
-        for typ in ("일반", "진로", "융합"):
-            subs = info["by_type"][typ]
-            if not subs:
-                continue
-            st.markdown(f"**{typ} 선택 ({len(subs)})**")
-            for start in range(0, len(subs), 4):
-                cols = st.columns(4)
-                for j, s in enumerate(subs[start:start + 4]):
-                    with cols[j]:
-                        if st.button(s, key=f"schsub_{r['shl_idf_cd']}_{typ}_{s}",
-                                     use_container_width=True):
-                            _xopen(("subject", s))
 
 
 def _render_job_detail(r):
@@ -1125,6 +1122,9 @@ with TAB_SCHOOL:
             st.markdown("---")
             st.markdown(f"### :material/menu_book: {subject_name}  ·  {ftype} 선택")
 
+            # ── 이 과목에서 배우는 것(성취기준) ──
+            _render_achievements(subject_name)
+
             # ── 연관 학과 (정렬 토글) ──
             sort_score = st.toggle("학과 키워드 점수순 정렬", value=False,
                                    key="subj_sort", help="끄면 가나다순")
@@ -1173,8 +1173,14 @@ with TAB_SCHOOL:
                                 disabled=not labels)
         if labels and pick != "(선택)":
             o = schools[labels.index(pick)]
-            _render_school_detail({"shl_idf_cd": o["shl_idf_cd"]})
+            # 다른 진입점과 동일하게 모달(_xview_school)로 표시 — 선택 변경 시 1회 오픈
+            if st.session_state.get("_st_school_shown") != o["shl_idf_cd"]:
+                st.session_state["_st_school_shown"] = o["shl_idf_cd"]
+                _xopen(("school", o["shl_idf_cd"], o["school"]))
+            st.success(f"**{o['school']}** 개설과목을 모달로 표시했어요. "
+                       "닫은 뒤 다시 보려면 학교를 다시 선택하세요.")
         else:
+            st.session_state.pop("_st_school_shown", None)
             st.info("시도 → 시군구 → 학교를 차례로 선택하세요.")
 
 

@@ -31,3 +31,6 @@ SERVICE_REVIEW.md
 
 # 비밀키/임시 메모 - 절대 커밋 금지 (API 키 평문 포함)
 gpt.txt
+
+# 대용량 원천(19MB) - 산출물 achievement_standards.json만 커밋, 재현은 build_achievements.py
+성취기준.xlsx

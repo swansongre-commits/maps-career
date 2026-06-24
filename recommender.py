@@ -18,6 +18,7 @@ UI(app.py)와 분리되어 있어 추후 FastAPI 엔드포인트로도 재사용
 import os
 import re
 import json
+import difflib
 import csv
 
 from tokenizer import tokenize
@@ -453,6 +454,44 @@ def schools_offering(subject_name, sido=None, gugun=None, limit=None):
 def norm_subject(s):
     """과목명 정규형(학교 개설과목 ↔ 학과 권장과목 매칭용 공개 래퍼)."""
     return _norm_subject(s)
+
+
+# ── 성취기준(교과-과목별 2022 개정) — 과목 클릭 시 '무엇을 배우는지' 표시 ──
+_ACH_ROMAN = {"Ⅰ": "I", "Ⅱ": "II", "Ⅲ": "III", "Ⅳ": "IV"}
+
+
+def _loose_subject(s):
+    """성취기준 매칭용 느슨 정규화(공백·중점·괄호 제거 + 로마숫자)."""
+    s = str(s or "")
+    for a, b in _ACH_ROMAN.items():
+        s = s.replace(a, b)
+    return re.sub(r"[^가-힣A-Za-z0-9]", "", s)
+
+
+def _load_achievements():
+    p = _path("achievement_standards.json")
+    if not os.path.exists(p):
+        return {}
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+ACHIEVEMENTS = _load_achievements()
+_ACH_KEYS = list(ACHIEVEMENTS.keys())
+
+
+def achievements_for_subject(name):
+    """과목명 → 성취기준 {gwa, subject, items:[{code, text}]}. 정확 매칭 우선,
+    없으면 오타 허용(difflib) 근접 매칭. 매칭 실패 시 None."""
+    if not ACHIEVEMENTS:
+        return None
+    k = _loose_subject(name)
+    if k in ACHIEVEMENTS:
+        return ACHIEVEMENTS[k]
+    m = difflib.get_close_matches(k, _ACH_KEYS, n=1, cutoff=0.82)
+    return ACHIEVEMENTS[m[0]] if m else None
 
 
 def major_subject_norm_set(name):
