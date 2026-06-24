@@ -711,7 +711,8 @@ def _subject_school_table(subject, prefix):
                     if st.button(o["school"],
                                  key=f"{prefix}_sch_{o['shl_idf_cd']}",
                                  use_container_width=True):
-                        _xgo(("school", o["shl_idf_cd"], o["school"]))
+                        # 4번째=진입 과목 → 학교 화면에서 그 과목 테두리 강조
+                        _xgo(("school", o["shl_idf_cd"], o["school"], subject))
     if len(fil) > show_n:
         if st.button(f"＋ 더 보기 (남은 {len(fil) - show_n:,}개교)",
                      key=f"{prefix}_more", use_container_width=True):
@@ -833,12 +834,26 @@ def _stack_recent_major():
 def _xview_school(sid, name):
     info = R.school_subjects(sid)
     st.markdown(f"### :material/apartment: {info['school']}  ·  {info['sido']} {info['gugun']}")
-    # 거쳐온 학과가 있으면 그 학과 권장과목을 강조(테두리+배경)
+    # 강조(테두리) 대상 = 거쳐온 학과 권장과목 ∪ 스택 내 과목 ∪ 진입 과목.
+    # 진입 과목: 과목 설치고교 목록에서 학교를 누른 경우 (school, sid, name, 과목) 4번째.
+    stack = st.session_state.get("xstack", [])
+    top = stack[-1] if stack else None
+    origin_subj = top[3] if (top and top[0] == "school" and len(top) > 3) else None
+    hl_set, label = set(), None
     hl_major = _stack_recent_major()
-    hl_set = R.major_subject_norm_set(hl_major) if hl_major else set()
+    if hl_major:
+        hl_set |= set(R.major_subject_norm_set(hl_major))
+        label = f"‘{hl_major}’ 권장과목"
+    subj_ctx = [v[1] for v in stack if v[0] == "subject"]
+    if origin_subj:
+        subj_ctx.append(origin_subj)
+    for s in subj_ctx:
+        hl_set.add(R.norm_subject(s))
+    if subj_ctx and not hl_major:
+        label = f"‘{subj_ctx[-1]}’"
     if hl_set:
         st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다. "
-                   f"**강조된 과목**은 ‘{hl_major}’ 권장과목이에요.")
+                   f"**강조된 과목**은 {label}이에요.")
     else:
         st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다.")
     gidx = 0
