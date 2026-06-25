@@ -346,13 +346,23 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 [class*="subjgrid"] div[data-testid="stButton"] > button p {{
     white-space: normal; word-break: keep-all; line-height: 1.2;
     font-size: 0.86rem; text-align: left; }}
-/* 전체 과목 매트릭스: 개설=초록 테두리, 학과연관=파랑 배경, 둘다=테두리+배경 */
+/* 전체 과목 매트릭스: 전체=진한회색 점선 / 개설=검은 실선 / 학과연관=파랑 배경 */
+[class*="st-key-xschsub_"] button {{ border: 2px dashed #6B6B6B !important; }}
 [class*="st-key-xschsub_off_"] button,
-[class*="st-key-xschsub_both_"] button {{ border: 2px solid #1F8A4C !important; }}
+[class*="st-key-xschsub_both_"] button {{ border: 2px solid #141414 !important; }}
 [class*="st-key-xschsub_rec_"] button,
 [class*="st-key-xschsub_both_"] button {{ background: #BFDBFE !important; }}
 [class*="st-key-xschsub_rec_"] button p,
 [class*="st-key-xschsub_both_"] button p {{ color: #1D4ED8 !important; font-weight: 800 !important; }}
+/* 학교 과목 매트릭스 범례(샘플 칩) */
+.schlgd {{ display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+    margin: 4px 0 10px; font-size: 0.82rem; color: {FABRIK['muted']}; }}
+.schlgd .lg {{ display: inline-block; margin-right: 5px; padding: 3px 11px;
+    border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+    background: #fff; border: 2px dashed #6B6B6B; vertical-align: middle; }}
+.schlgd .lg-off {{ border: 2px solid #141414; }}
+.schlgd .lg-rec {{ background: #BFDBFE; color: #1D4ED8; }}
+.schlgd .lg-both {{ border: 2px solid #141414; background: #BFDBFE; color: #1D4ED8; }}
 
 /* 과목 유형 뱃지 — 칩 앞 무채색 알약(.badge 톤). 버튼 키 코드로 매칭 */
 [class*="st-key-xmajsub_il_"] button::before,
@@ -859,12 +869,15 @@ def _render_school_body(sid, prefix="xsch", rec_set=None, rec_label=None):
     info = R.school_subjects(sid)
     offered = {R.norm_subject(s) for v in info["by_type"].values() for s in v}
     rec_set = rec_set or set()
+    # 범례(샘플 칩) — 점선=전체 / 검은 실선=이 학교 개설 / 파랑 배경=학과 연관
+    legend = ["<span><span class='lg'>과목</span> 전체 과목</span>",
+              f"<span><span class='lg lg-off'>과목</span> 이 학교 개설 {len(offered)}개</span>"]
     if rec_set:
-        st.caption(f"전체 2022 선택과목 — **초록 테두리**=이 학교 개설({len(offered)}개), "
-                   f"**파랑 배경**={rec_label}. 과목을 누르면 설치 고교를 봅니다.")
-    else:
-        st.caption(f"전체 2022 선택과목 — **초록 테두리**=이 학교가 개설한 과목"
-                   f"({len(offered)}개). 과목을 누르면 설치 고교를 봅니다.")
+        legend.append(f"<span><span class='lg lg-rec'>과목</span> {rec_label}</span>")
+        legend.append("<span><span class='lg lg-both'>과목</span> 둘 다(개설+연관)</span>")
+    st.markdown("<div class='schlgd'>" + "".join(legend) + "</div>",
+                unsafe_allow_html=True)
+    st.caption("전체 2022 선택과목 중 표시 — 과목을 누르면 그 과목 설치 고교를 봅니다.")
     allsub = _all_subjects_by_type()
     gidx = 0
     with st.container(key=f"{prefix}_subjgrid"):
