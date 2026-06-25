@@ -346,9 +346,9 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 [class*="subjgrid"] div[data-testid="stButton"] > button p {{
     white-space: normal; word-break: keep-all; line-height: 1.2;
     font-size: 0.86rem; text-align: left; }}
-/* 학교 개설과목 2신호: 개설=테두리(잉크), 권장과목=배경(파랑), 둘다=테두리+배경 */
+/* 학교 개설과목 2신호: 개설=초록 테두리(사용가능), 권장과목=파랑 배경, 둘다=둘다 */
 [class*="st-key-xschsub_off_"] button,
-[class*="st-key-xschsub_both_"] button {{ border: 2px solid {FABRIK['cta']} !important; }}
+[class*="st-key-xschsub_both_"] button {{ border: 2px solid #1F8A4C !important; }}
 [class*="st-key-xschsub_both_"] button {{ background: #BFDBFE !important; }}
 [class*="st-key-xschsub_both_"] button p {{ color: #1D4ED8 !important; font-weight: 800 !important; }}
 
