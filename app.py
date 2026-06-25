@@ -346,10 +346,12 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 [class*="subjgrid"] div[data-testid="stButton"] > button p {{
     white-space: normal; word-break: keep-all; line-height: 1.2;
     font-size: 0.86rem; text-align: left; }}
-/* 학교 개설과목 2신호: 개설=초록 테두리(사용가능), 권장과목=파랑 배경, 둘다=둘다 */
+/* 전체 과목 매트릭스: 개설=초록 테두리, 학과연관=파랑 배경, 둘다=테두리+배경 */
 [class*="st-key-xschsub_off_"] button,
 [class*="st-key-xschsub_both_"] button {{ border: 2px solid #1F8A4C !important; }}
+[class*="st-key-xschsub_rec_"] button,
 [class*="st-key-xschsub_both_"] button {{ background: #BFDBFE !important; }}
+[class*="st-key-xschsub_rec_"] button p,
 [class*="st-key-xschsub_both_"] button p {{ color: #1D4ED8 !important; font-weight: 800 !important; }}
 
 /* 과목 유형 뱃지 — 칩 앞 무채색 알약(.badge 톤). 버튼 키 코드로 매칭 */
@@ -841,33 +843,44 @@ def _fallback_hl():
     return set(R.major_subject_norm_set(top)), f"추천 1위 ‘{top}’ 권장과목"
 
 
+@st.cache_data
+def _all_subjects_by_type():
+    """전체 2022 선택과목을 유형별로 — {일반/진로/융합: [과목명…]}."""
+    out = {"일반": [], "진로": [], "융합": []}
+    for s in R.subject_list():
+        if s["type"] in out:
+            out[s["type"]].append(s["name"])
+    return out
+
+
 def _render_school_body(sid, prefix="xsch", rec_set=None, rec_label=None):
-    """학교 개설과목 본문 — 모달·인라인·결과화면 공용.
-    개설(= 이 학교의 모든 과목)=테두리, 권장과목(rec_set)=배경, 둘다=테두리+배경."""
+    """전체 2022 선택과목을 깔고 — 이 학교 개설=초록 테두리, 학과연관=파랑 배경,
+    둘다=테두리+배경. 모달·인라인·결과화면 공용."""
     info = R.school_subjects(sid)
+    offered = {R.norm_subject(s) for v in info["by_type"].values() for s in v}
     rec_set = rec_set or set()
     if rec_set:
-        st.caption(f"개설 과목 {info['n_subj']}개 — **테두리**=이 학교 개설과목, "
+        st.caption(f"전체 2022 선택과목 — **초록 테두리**=이 학교 개설({len(offered)}개), "
                    f"**파랑 배경**={rec_label}. 과목을 누르면 설치 고교를 봅니다.")
     else:
-        st.caption(f"개설 과목 {info['n_subj']}개 — **테두리**=이 학교가 개설한 과목. "
-                   "과목을 누르면 설치 고교를 봅니다.")
+        st.caption(f"전체 2022 선택과목 — **초록 테두리**=이 학교가 개설한 과목"
+                   f"({len(offered)}개). 과목을 누르면 설치 고교를 봅니다.")
+    allsub = _all_subjects_by_type()
     gidx = 0
     with st.container(key=f"{prefix}_subjgrid"):
         for typ in ("일반", "진로", "융합"):
-            subs = info["by_type"][typ]
+            subs = allsub[typ]
             if not subs:
                 continue
-            n_rec = sum(1 for s in subs if R.norm_subject(s) in rec_set)
-            head = f"**{typ} 선택 ({len(subs)})**"
-            if rec_set and n_rec:
-                head += f" · 권장 {n_rec}개"
-            st.markdown(head)
+            n_off = sum(1 for s in subs if R.norm_subject(s) in offered)
+            st.markdown(f"**{typ} 선택 ({len(subs)})** · 이 학교 개설 {n_off}개")
             for start in range(0, len(subs), 4):
                 cols = st.columns(4)
                 for j, s in enumerate(subs[start:start + 4]):
-                    # 학교뷰의 모든 과목은 개설됨 → 권장이면 both(테두리+배경), 아니면 off(테두리)
-                    state = "both" if R.norm_subject(s) in rec_set else "off"
+                    off = R.norm_subject(s) in offered
+                    rec = R.norm_subject(s) in rec_set
+                    state = ("both" if off and rec else "off" if off
+                             else "rec" if rec else "plain")
                     key = f"xschsub_{state}_{prefix}_{gidx}"
                     with cols[j]:
                         if st.button(s, key=key, use_container_width=True):
