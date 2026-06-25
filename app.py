@@ -349,7 +349,7 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 /* 학교 개설과목 2신호: 개설=테두리(잉크), 권장과목=배경(파랑), 둘다=테두리+배경 */
 [class*="st-key-xschsub_off_"] button,
 [class*="st-key-xschsub_both_"] button {{ border: 2px solid {FABRIK['cta']} !important; }}
-[class*="st-key-xschsub_both_"] button {{ background: #EFF6FF !important; }}
+[class*="st-key-xschsub_both_"] button {{ background: #BFDBFE !important; }}
 [class*="st-key-xschsub_both_"] button p {{ color: #1D4ED8 !important; font-weight: 800 !important; }}
 
 /* 과목 유형 뱃지 — 칩 앞 무채색 알약(.badge 톤). 버튼 키 코드로 매칭 */
