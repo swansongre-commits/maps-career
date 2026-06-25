@@ -831,11 +831,41 @@ def _stack_recent_major():
     return None
 
 
+def _render_school_body(sid, prefix="xsch", hl_set=None, hl_label=None):
+    """학교 개설과목 본문(유형별 칩 그리드 + 강조) — 모달·인라인 공용."""
+    info = R.school_subjects(sid)
+    hl_set = hl_set or set()
+    if hl_set:
+        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다. "
+                   f"**강조된 과목**은 {hl_label}이에요.")
+    else:
+        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다.")
+    gidx = 0
+    with st.container(key=f"{prefix}_subjgrid"):
+        for typ in ("일반", "진로", "융합"):
+            subs = info["by_type"][typ]
+            if not subs:
+                continue
+            n_hl = sum(1 for s in subs if R.norm_subject(s) in hl_set)
+            head = f"**{typ} 선택 ({len(subs)})**"
+            if hl_set and n_hl:
+                head += f" · 권장 {n_hl}개"
+            st.markdown(head)
+            for start in range(0, len(subs), 4):
+                cols = st.columns(4)
+                for j, s in enumerate(subs[start:start + 4]):
+                    hl = R.norm_subject(s) in hl_set
+                    key = f"xschsub_hl_{prefix}_{gidx}" if hl else f"{prefix}sub_{gidx}"
+                    with cols[j]:
+                        if st.button(s, key=key, use_container_width=True):
+                            _xgo(("subject", s))
+                    gidx += 1
+
+
 def _xview_school(sid, name):
     info = R.school_subjects(sid)
     st.markdown(f"### :material/apartment: {info['school']}  ·  {info['sido']} {info['gugun']}")
-    # 강조(테두리) 대상 = 거쳐온 학과 권장과목 ∪ 스택 내 과목 ∪ 진입 과목.
-    # 진입 과목: 과목 설치고교 목록에서 학교를 누른 경우 (school, sid, name, 과목) 4번째.
+    # 강조(테두리) 대상 = 거쳐온 학과 권장과목 ∪ 스택 내 과목 ∪ 진입 과목(4번째 튜플)
     stack = st.session_state.get("xstack", [])
     top = stack[-1] if stack else None
     origin_subj = top[3] if (top and top[0] == "school" and len(top) > 3) else None
@@ -851,31 +881,7 @@ def _xview_school(sid, name):
         hl_set.add(R.norm_subject(s))
     if subj_ctx and not hl_major:
         label = f"‘{subj_ctx[-1]}’"
-    if hl_set:
-        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다. "
-                   f"**강조된 과목**은 {label}이에요.")
-    else:
-        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다.")
-    gidx = 0
-    with st.container(key="xsch_subjgrid"):
-        for typ in ("일반", "진로", "융합"):
-            subs = info["by_type"][typ]
-            if not subs:
-                continue
-            n_hl = sum(1 for s in subs if R.norm_subject(s) in hl_set)
-            head = f"**{typ} 선택 ({len(subs)})**"
-            if hl_set and n_hl:
-                head += f" · 권장 {n_hl}개"
-            st.markdown(head)
-            for start in range(0, len(subs), 4):
-                cols = st.columns(4)
-                for j, s in enumerate(subs[start:start + 4]):
-                    hl = R.norm_subject(s) in hl_set
-                    key = f"xschsub_hl_{gidx}" if hl else f"xschsub_{gidx}"
-                    with cols[j]:
-                        if st.button(s, key=key, use_container_width=True):
-                            _xgo(("subject", s))
-                    gidx += 1
+    _render_school_body(sid, "xsch", hl_set, label)
 
 
 def _xview_job(name):
@@ -1188,14 +1194,12 @@ with TAB_SCHOOL:
                                 disabled=not labels)
         if labels and pick != "(선택)":
             o = schools[labels.index(pick)]
-            # 다른 진입점과 동일하게 모달(_xview_school)로 표시 — 선택 변경 시 1회 오픈
-            if st.session_state.get("_st_school_shown") != o["shl_idf_cd"]:
-                st.session_state["_st_school_shown"] = o["shl_idf_cd"]
-                _xopen(("school", o["shl_idf_cd"], o["school"]))
-            st.success(f"**{o['school']}** 개설과목을 모달로 표시했어요. "
-                       "닫은 뒤 다시 보려면 학교를 다시 선택하세요.")
+            # 드롭다운 선택은 인라인 표시(모달 아님). 본문은 모달 학교뷰와 동일 컴포넌트.
+            info = R.school_subjects(o["shl_idf_cd"])
+            st.markdown(f"### :material/apartment: {info['school']}  ·  "
+                        f"{info['sido']} {info['gugun']}")
+            _render_school_body(o["shl_idf_cd"], "schd")
         else:
-            st.session_state.pop("_st_school_shown", None)
             st.info("시도 → 시군구 → 학교를 차례로 선택하세요.")
 
 
