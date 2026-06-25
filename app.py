@@ -346,11 +346,11 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 [class*="subjgrid"] div[data-testid="stButton"] > button p {{
     white-space: normal; word-break: keep-all; line-height: 1.2;
     font-size: 0.86rem; text-align: left; }}
-/* 학교 화면에서 '거쳐온 학과'의 권장과목 강조 — 특수분류 파랑(공시 배지와 동일) */
-[class*="st-key-xschsub_hl_"] button {{
-    border: 2px solid #1D4ED8 !important;
-    background: #EFF6FF !important; }}
-[class*="st-key-xschsub_hl_"] button p {{ font-weight: 800 !important; color: #1D4ED8 !important; }}
+/* 학교 개설과목 2신호: 개설=테두리(잉크), 권장과목=배경(파랑), 둘다=테두리+배경 */
+[class*="st-key-xschsub_off_"] button,
+[class*="st-key-xschsub_both_"] button {{ border: 2px solid {FABRIK['cta']} !important; }}
+[class*="st-key-xschsub_both_"] button {{ background: #EFF6FF !important; }}
+[class*="st-key-xschsub_both_"] button p {{ color: #1D4ED8 !important; font-weight: 800 !important; }}
 
 /* 과목 유형 뱃지 — 칩 앞 무채색 알약(.badge 톤). 버튼 키 코드로 매칭 */
 [class*="st-key-xmajsub_il_"] button::before,
@@ -841,31 +841,34 @@ def _fallback_hl():
     return set(R.major_subject_norm_set(top)), f"추천 1위 ‘{top}’ 권장과목"
 
 
-def _render_school_body(sid, prefix="xsch", hl_set=None, hl_label=None):
-    """학교 개설과목 본문(유형별 칩 그리드 + 강조) — 모달·인라인 공용."""
+def _render_school_body(sid, prefix="xsch", rec_set=None, rec_label=None):
+    """학교 개설과목 본문 — 모달·인라인·결과화면 공용.
+    개설(= 이 학교의 모든 과목)=테두리, 권장과목(rec_set)=배경, 둘다=테두리+배경."""
     info = R.school_subjects(sid)
-    hl_set = hl_set or set()
-    if hl_set:
-        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다. "
-                   f"**강조된 과목**은 {hl_label}이에요.")
+    rec_set = rec_set or set()
+    if rec_set:
+        st.caption(f"개설 과목 {info['n_subj']}개 — **테두리**=이 학교 개설과목, "
+                   f"**파랑 배경**={rec_label}. 과목을 누르면 설치 고교를 봅니다.")
     else:
-        st.caption(f"개설 과목 {info['n_subj']}개 — 과목을 누르면 그 과목 설치 고교를 봅니다.")
+        st.caption(f"개설 과목 {info['n_subj']}개 — **테두리**=이 학교가 개설한 과목. "
+                   "과목을 누르면 설치 고교를 봅니다.")
     gidx = 0
     with st.container(key=f"{prefix}_subjgrid"):
         for typ in ("일반", "진로", "융합"):
             subs = info["by_type"][typ]
             if not subs:
                 continue
-            n_hl = sum(1 for s in subs if R.norm_subject(s) in hl_set)
+            n_rec = sum(1 for s in subs if R.norm_subject(s) in rec_set)
             head = f"**{typ} 선택 ({len(subs)})**"
-            if hl_set and n_hl:
-                head += f" · 권장 {n_hl}개"
+            if rec_set and n_rec:
+                head += f" · 권장 {n_rec}개"
             st.markdown(head)
             for start in range(0, len(subs), 4):
                 cols = st.columns(4)
                 for j, s in enumerate(subs[start:start + 4]):
-                    hl = R.norm_subject(s) in hl_set
-                    key = f"xschsub_hl_{prefix}_{gidx}" if hl else f"{prefix}sub_{gidx}"
+                    # 학교뷰의 모든 과목은 개설됨 → 권장이면 both(테두리+배경), 아니면 off(테두리)
+                    state = "both" if R.norm_subject(s) in rec_set else "off"
+                    key = f"xschsub_{state}_{prefix}_{gidx}"
                     with cols[j]:
                         if st.button(s, key=key, use_container_width=True):
                             _xgo(("subject", s))
@@ -875,25 +878,13 @@ def _render_school_body(sid, prefix="xsch", hl_set=None, hl_label=None):
 def _xview_school(sid, name):
     info = R.school_subjects(sid)
     st.markdown(f"### :material/apartment: {info['school']}  ·  {info['sido']} {info['gugun']}")
-    # 강조(테두리) 대상 = 거쳐온 학과 권장과목 ∪ 스택 내 과목 ∪ 진입 과목(4번째 튜플)
-    stack = st.session_state.get("xstack", [])
-    top = stack[-1] if stack else None
-    origin_subj = top[3] if (top and top[0] == "school" and len(top) > 3) else None
-    hl_set, label = set(), None
-    hl_major = _stack_recent_major()
-    if hl_major:
-        hl_set |= set(R.major_subject_norm_set(hl_major))
-        label = f"‘{hl_major}’ 권장과목"
-    subj_ctx = [v[1] for v in stack if v[0] == "subject"]
-    if origin_subj:
-        subj_ctx.append(origin_subj)
-    for s in subj_ctx:
-        hl_set.add(R.norm_subject(s))
-    if subj_ctx and not hl_major:
-        label = f"‘{subj_ctx[-1]}’"
-    if not hl_set:                       # 맥락 없으면 추천 1위 학과로 폴백 강조
-        hl_set, label = _fallback_hl()
-    _render_school_body(sid, "xsch", hl_set, label)
+    # 권장과목(배경) 기준 = 거쳐온 학과, 없으면 추천 1위 학과(폴백). 개설(테두리)은 모든 과목.
+    rec_major = _stack_recent_major()
+    if rec_major:
+        rec_set, label = set(R.major_subject_norm_set(rec_major)), f"‘{rec_major}’ 권장과목"
+    else:
+        rec_set, label = _fallback_hl()
+    _render_school_body(sid, "xsch", rec_set, label)
 
 
 def _xview_job(name):
