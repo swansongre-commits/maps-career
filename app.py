@@ -831,6 +831,16 @@ def _stack_recent_major():
     return None
 
 
+def _fallback_hl():
+    """명시적 맥락이 없을 때(학교로 찾기 등)의 강조 기준 = 추천 1위 학과 권장과목.
+    추천 결과가 없으면 (빈 set, None)."""
+    out = st.session_state.get("result")
+    if not out or not out.get("majors"):
+        return set(), None
+    top = out["majors"][0]["name"]
+    return set(R.major_subject_norm_set(top)), f"추천 1위 ‘{top}’ 권장과목"
+
+
 def _render_school_body(sid, prefix="xsch", hl_set=None, hl_label=None):
     """학교 개설과목 본문(유형별 칩 그리드 + 강조) — 모달·인라인 공용."""
     info = R.school_subjects(sid)
@@ -881,6 +891,8 @@ def _xview_school(sid, name):
         hl_set.add(R.norm_subject(s))
     if subj_ctx and not hl_major:
         label = f"‘{subj_ctx[-1]}’"
+    if not hl_set:                       # 맥락 없으면 추천 1위 학과로 폴백 강조
+        hl_set, label = _fallback_hl()
     _render_school_body(sid, "xsch", hl_set, label)
 
 
@@ -1198,7 +1210,8 @@ with TAB_SCHOOL:
             info = R.school_subjects(o["shl_idf_cd"])
             st.markdown(f"### :material/apartment: {info['school']}  ·  "
                         f"{info['sido']} {info['gugun']}")
-            _render_school_body(o["shl_idf_cd"], "schd")
+            _hl, _hlbl = _fallback_hl()   # 추천 1위 학과 기준 강조(추천 했을 때만)
+            _render_school_body(o["shl_idf_cd"], "schd", _hl, _hlbl)
         else:
             st.info("시도 → 시군구 → 학교를 차례로 선택하세요.")
 
