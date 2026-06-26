@@ -34,7 +34,7 @@ R = load_engine()
 import re
 from urllib.parse import quote
 
-VIA_BADGE = {"공시": "🟦", "쉬운말": "🟩"}
+LLM_SESSION_CAP = 10  # 세션당 LLM(OpenAI) 호출 상한 — 무인증 공개 시 과금 방어(보조선)
 
 # 과목 유형 → 위젯키용 ASCII 코드(버튼 키에 인코딩 → CSS ::before 뱃지 매칭)
 SUBJ_TYPE_CODE = {"일반": "il", "진로": "jr", "융합": "yh"}
@@ -418,14 +418,6 @@ table.univ-tb tr.grp-start > td {{ border-top: 2px solid {FABRIK['navy']}; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
-
-
-def reason_line(reasons, limit=8):
-    parts = []
-    for x in reasons[:limit]:
-        b = VIA_BADGE.get(x["via"], "")
-        parts.append(f'{b} `{x["term"]}` ({x["rank"]}위·{x["points"]}점)')
-    return "  ".join(parts)
 
 
 def reason_table_html(reasons, limit=20):
@@ -864,7 +856,7 @@ def _all_subjects_by_type():
 
 
 def _render_school_body(sid, prefix="xsch", rec_set=None, rec_label=None):
-    """전체 2022 선택과목을 깔고 — 이 학교 개설=초록 테두리, 학과연관=파랑 배경,
+    """전체 2022 선택과목을 깔고 — 이 학교 개설=검은 테두리, 학과연관=파랑 배경,
     둘다=테두리+배경. 모달·인라인·결과화면 공용."""
     info = R.school_subjects(sid)
     offered = {R.norm_subject(s) for v in info["by_type"].values() for s in v}
@@ -1035,15 +1027,17 @@ st.caption("나의 관심사로부터 진로진학까지 한번에")
 
 with st.sidebar:
     st.subheader("설정")
-    topn = st.slider("추천 개수", 3, 10, 5)
-    pair_k = st.slider("연계 페어 개수", 3, 9, 5)
+    with st.expander("고급 설정", expanded=False):
+        topn = st.slider("추천 개수", 3, 10, 5)
+        pair_k = st.slider("연계 페어 개수", 3, 9, 5)
     import llm_extract
     llm_ready = llm_extract.available()
     use_llm = st.checkbox(
-        "LLM 발화 이해 사용", value=llm_ready, disabled=not llm_ready,
+        "LLM 발화 이해 사용", value=False, disabled=not llm_ready,
         help=("OPENAI_API_KEY 가 설정되어 있어야 켤 수 있습니다. "
               "추상적인 발화(예: '남 도와주는 일')도 표준 키워드로 변환합니다. "
-              "실패 시 규칙 기반으로 자동 전환됩니다."))
+              "실패 시 규칙 기반으로 자동 전환됩니다. "
+              "켜면 외부 AI(OpenAI)를 호출합니다."))
     if not llm_ready:
         st.caption("🔒 OPENAI_API_KEY 미설정 — 규칙 기반으로 동작")
     st.markdown("---")
@@ -1070,13 +1064,21 @@ with TAB_REC:
         if not speech.strip():
             st.warning("진로 추천에 바탕이 될 내용을 입력해 주세요.")
         else:
+            # 세션당 LLM 호출 상한 초과 시 규칙 기반으로 전환(과금 방어 보조선)
+            eff_llm = use_llm
+            if use_llm and st.session_state.get("_llm_calls", 0) >= LLM_SESSION_CAP:
+                eff_llm = False
+                st.caption("이 세션의 AI 사용 한도에 도달해 규칙 기반으로 전환했어요.")
             loading = st.empty()
             loading.markdown(LOADING_HTML, unsafe_allow_html=True)
             try:
                 st.session_state["result"] = R.recommend(
-                    speech, top_n=topn, pair_k=pair_k, use_llm=use_llm)
+                    speech, top_n=topn, pair_k=pair_k, use_llm=eff_llm)
             finally:
                 loading.empty()
+            # 실제 LLM이 동작한 경우에만 카운트(키 없음·폴백·규칙 호출은 미차감)
+            if eff_llm and st.session_state["result"].get("meta", {}).get("mode") == "llm":
+                st.session_state["_llm_calls"] = st.session_state.get("_llm_calls", 0) + 1
 
     out = st.session_state.get("result")
     if not out:
