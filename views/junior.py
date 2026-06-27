@@ -48,7 +48,7 @@ CHIPS = [
 ]
 
 POOL = 12       # 한 발화당 가져올 직업 후보 수
-PER_PAGE = 3    # 한 번에 보여줄 카드 수
+PER_PAGE = 6    # 가로 스트립에 한 번에 보여줄 카드 수
 
 CSS = """
 <style>
@@ -60,15 +60,27 @@ div[data-testid="stButton"] > button{
   font-size:1.02rem;font-weight:600;background:#fff;transition:.12s;}
 div[data-testid="stButton"] > button:hover{border-color:#141414;background:#FAFAFA;}
 /* 카드 */
-.jr-card{border:1.5px solid #E4E4E4;border-radius:16px;padding:18px 18px 6px;
-  background:#fff;text-align:center;}
-.jr-emoji{font-size:3.1rem;line-height:1.1;margin:.1rem 0}
-.jr-name{font-size:1.35rem;font-weight:800;color:#141414;margin:.1rem 0}
+/* 가로 스크롤 카드 스트립 — 세로 점유 최소화(팀원 슬라이더 안 반영) */
+.st-key-jr_strip [data-testid="stHorizontalBlock"]{
+  flex-wrap:nowrap!important;overflow-x:auto;gap:10px;padding:2px 2px 12px;
+  scrollbar-width:thin;scroll-snap-type:x proximity;}
+.st-key-jr_strip [data-testid="stColumn"]{
+  min-width:152px!important;width:152px!important;flex:0 0 152px!important;
+  scroll-snap-align:start;}
+.st-key-jr_strip div[data-testid="stButton"] > button,
+.st-key-jr_strip div[data-testid="stPopover"] button{
+  padding:.26rem .2rem!important;font-size:.84rem!important;border-radius:10px;}
+/* 컴팩트 카드 */
+.jr-card{border:1.5px solid #E4E4E4;border-radius:14px;padding:12px 8px 9px;
+  background:#fff;text-align:center;margin-bottom:6px}
+.jr-emoji{font-size:2.1rem;line-height:1.05;margin:.02rem 0}
+.jr-name{font-size:1.0rem;font-weight:800;color:#141414;margin:.12rem 0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jr-why{display:inline-block;background:#EFF4FF;color:#1D4ED8;border-radius:999px;
-  padding:.18rem .7rem;font-size:.86rem;font-weight:600;margin:.35rem 0 .2rem}
+  padding:.1rem .45rem;font-size:.7rem;font-weight:600;margin:.28rem 0 0;line-height:1.3}
 .jr-dex{display:inline-block;border:1.5px solid #E4E4E4;border-radius:999px;
-  padding:.3rem .8rem;margin:.2rem .3rem .2rem 0;font-size:1rem;background:#fff;}
-@media (max-width:640px){ .jr-emoji{font-size:2.6rem} .jr-name{font-size:1.18rem} }
+  padding:.25rem .7rem;margin:.2rem .3rem .2rem 0;font-size:.95rem;background:#fff;}
+.jr-hint{color:#9A9A9A;font-size:.82rem;margin:.1rem 0 .3rem}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -162,36 +174,38 @@ total = len(jobs)
 start = ss["jr_offset"] % total if total else 0
 window = [jobs[(start + i) % total] for i in range(min(PER_PAGE, total))]
 
-cards = st.columns(len(window))
-for col, j in zip(cards, window):
-    name = j["name"]
-    meta = JOBMETA.get(name, {})
-    em = meta.get("emoji", "💼")
-    blurb = meta.get("blurb", "")
-    major = meta.get("major", "")
-    why = ""
-    if j.get("reasons"):
-        why = f'“{j["reasons"][0]["term"]}” 라고 말해줘서 골랐어'
-    with col:
-        st.markdown(
-            f'<div class="jr-card"><div class="jr-emoji">{em}</div>'
-            f'<div class="jr-name">{name}</div>'
-            + (f'<div class="jr-why">{why}</div>' if why else "")
-            + '</div>', unsafe_allow_html=True)
-        already = name in ss["jr_dex"]
-        if st.button("⭐ 모았어요" if already else "⭐ 모으기",
-                     key=f"add_{name}", use_container_width=True, disabled=already):
-            ss["jr_dex"].append(name)
-            st.rerun()
-        with st.expander("자세히 보기"):
-            if blurb:
-                st.write(blurb)
-            if major:
-                st.caption(f"🌱 커서 더 배우는 곳: {major}")
+st.markdown('<div class="jr-hint">← 좌우로 밀어서 더 봐요</div>',
+            unsafe_allow_html=True)
+with st.container(key="jr_strip"):
+    cards = st.columns(len(window))
+    for col, j in zip(cards, window):
+        name = j["name"]
+        meta = JOBMETA.get(name, {})
+        em = meta.get("emoji", "💼")
+        blurb = meta.get("blurb", "")
+        major = meta.get("major", "")
+        why = f'“{j["reasons"][0]["term"]}” 골랐어' if j.get("reasons") else ""
+        with col:
+            st.markdown(
+                f'<div class="jr-card"><div class="jr-emoji">{em}</div>'
+                f'<div class="jr-name" title="{name}">{name}</div>'
+                + (f'<div class="jr-why">{why}</div>' if why else "")
+                + '</div>', unsafe_allow_html=True)
+            already = name in ss["jr_dex"]
+            if st.button("✅ 모았어요" if already else "⭐ 모으기",
+                         key=f"add_{name}", use_container_width=True, disabled=already):
+                ss["jr_dex"].append(name)
+                st.rerun()
+            with st.popover("자세히", use_container_width=True):
+                st.markdown(f"### {em} {name}")
+                if blurb:
+                    st.write(blurb)
+                if major:
+                    st.caption(f"🌱 커서 더 배우는 곳: {major}")
 
 # 더보기
 if total > PER_PAGE:
-    if st.button("♻️ 다른 일 더 보기", key="jr_more", use_container_width=True):
+    if st.button("♻️ 다른 일 더 보기", key="jr_more"):
         ss["jr_offset"] += PER_PAGE
         st.rerun()
 
