@@ -22,6 +22,12 @@ def _engine():
 
 @st.cache_data
 def _jobmeta():
+    # content.db(재수집 정본) 우선, 없으면 junior_jobs.json 폴백
+    import content_db
+    if content_db.available():
+        meta = content_db.junior_job_meta()
+        if meta:
+            return meta
     p = os.path.join(BASE, "junior_jobs.json")
     if os.path.exists(p):
         return json.load(open(p, encoding="utf-8"))

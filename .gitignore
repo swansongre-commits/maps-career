@@ -44,3 +44,8 @@ gpt.txt
 
 # 대용량 원천(19MB) - 산출물 achievement_standards.json만 커밋, 재현은 build_achievements.py
 성취기준.xlsx
+
+# 커리어넷 재수집 원천(31MB) - 재현: datacrawling/crawl_careernet_api.py (seq목록·코드는 커밋)
+datacrawling/raw/
+datacrawling/major_info.csv
+datacrawling/job_info.csv
