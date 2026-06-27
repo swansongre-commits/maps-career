@@ -65,18 +65,23 @@ div[data-testid="stButton"] > button{
   border-radius:999px;border:1.5px solid #E4E4E4;padding:.55rem .2rem;
   font-size:1.02rem;font-weight:600;background:#fff;transition:.12s;}
 div[data-testid="stButton"] > button:hover{border-color:#141414;background:#FAFAFA;}
-/* 관심사 칩: 4열, 정방형에 가깝게(세로 크게) */
+/* 관심사 칩: 정사각형 타일(가로=세로) 폭 고정 + 칼럼 중앙 정렬 — 너무 넓지 않게 */
+.st-key-jr_chips div[data-testid="stButton"]{display:flex;justify-content:center;}
 .st-key-jr_chips div[data-testid="stButton"] > button{
-  min-height:94px;border-radius:16px;font-size:1.18rem;font-weight:700;line-height:1.35;}
+  width:132px;max-width:132px;aspect-ratio:1/1;padding:.3rem;
+  border-radius:18px;font-size:1.06rem;font-weight:700;line-height:1.3;}
 /* 직업 카드: 4열 그리드 · 세로가 긴 카드(이모지·제목 크게) */
-.jr-card{border:1.5px solid #E4E4E4;border-radius:16px;padding:22px 14px 14px;
-  background:#fff;text-align:center;margin-bottom:6px;min-height:256px}
+/* 카드 비율 고정: 세로형 3:4 (폭에 상관없이 같은 비율), 폭 상한 210px */
+.jr-card{border:1.5px solid #E4E4E4;border-radius:16px;padding:20px 14px 14px;
+  background:#fff;text-align:center;width:100%;max-width:210px;margin:0 auto 6px;
+  aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;overflow:hidden}
 .jr-emoji{font-size:3.2rem;line-height:1.05;margin:.1rem 0 .25rem}
-.jr-name{font-size:1.18rem;font-weight:800;color:#141414;margin:.1rem 0 .38rem;
+.jr-name{width:100%;font-size:1.16rem;font-weight:800;color:#141414;margin:.1rem 0 .4rem;
   line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   overflow:hidden}
-.jr-blurb{font-size:.86rem;color:#4B5563;line-height:1.45;margin:.1rem 0 0;text-align:left;
-  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.jr-blurb{width:100%;font-size:.85rem;color:#4B5563;line-height:1.45;margin:.1rem 0 0;
+  text-align:left;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;
+  overflow:hidden}
 .jr-dex{display:inline-block;border:1.5px solid #E4E4E4;border-radius:999px;
   padding:.25rem .7rem;margin:.2rem .3rem .2rem 0;font-size:.95rem;background:#fff;}
 </style>
