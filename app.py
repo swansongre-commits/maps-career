@@ -19,5 +19,6 @@ pages = [
     st.Page("views/landing.py", title="홈", icon="🎓", default=True),
     st.Page("views/junior.py", title="주니어 · 초중", icon="🧭", url_path="1"),
     st.Page("views/highschool.py", title="고교 · 선택과목", icon="🎓", url_path="2"),
+    st.Page("views/legacy.py", title="원본(분리 전 통합)", icon="🗂️", url_path="3"),
 ]
 st.navigation(pages).run()

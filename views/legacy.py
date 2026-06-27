@@ -17,6 +17,7 @@
 import streamlit as st
 
 # set_page_config는 라우터(app.py)에서 1회만 호출 — 페이지 스크립트에서는 호출 금지.
+# (이 페이지는 초중/고 분리 전 통합 서비스 원본 로직 — /3)
 
 # 참고: 크롬 자동 번역 팝업은 Streamlit Cloud에서 코드로 막기 어렵다(최초 HTML의
 # <html lang>을 제어할 수 없고, JS 주입은 컴포넌트 iframe 제약·타이밍으로 늦음).
@@ -577,21 +578,6 @@ def _category_picker():
 
 
 def _render_major_detail(r):
-    # content.db(재수집 정본)의 학과 개요·연관직업을 맨 위에 보강 표시(엔진 미변경)
-    try:
-        import content_db
-        _intro = content_db.major_intro(r)
-    except Exception:
-        _intro = None
-    if _intro and _intro.get("summary"):
-        head = ":material/info: 학과 소개"
-        if _intro.get("category"):
-            head += f" · {_intro['category']}"
-        with st.expander(head, expanded=True):
-            st.write(_intro["summary"])
-            if _intro.get("related_jobs"):
-                st.caption("연관 직업: " + ", ".join(_intro["related_jobs"][:10]))
-
     extra = R.major_extra(r)
     univ = extra.get("설치대학", {})
     if univ.get("univ_count", 0) > 0:
@@ -745,20 +731,6 @@ def _xview_major(name):
         st.info("학과 정보를 찾을 수 없어요.")
         return
     st.markdown(f"### :material/menu_book: {r['name']}")
-    # content.db(재수집 정본) 학과 개요·연관직업 — 표시 보강(추천 엔진 미변경)
-    try:
-        import content_db
-        _intro = content_db.major_intro(r["name"])
-    except Exception:
-        _intro = None
-    if _intro and _intro.get("summary"):
-        head = ":material/info: 학과 소개"
-        if _intro.get("category"):
-            head += f" · {_intro['category']}"
-        with st.expander(head, expanded=True):
-            st.write(_intro["summary"])
-            if _intro.get("related_jobs"):
-                st.caption("연관 직업: " + ", ".join(_intro["related_jobs"][:10]))
     st.markdown("**대표 키워드**")
     st.markdown(reason_table_html(r["reasons"]), unsafe_allow_html=True)
     _render_univ_block(r)
