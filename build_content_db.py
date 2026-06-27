@@ -73,12 +73,13 @@ def pick_emoji(name, tag):
 def kidify(text):
     if not text:
         return ""
-    seg = re.split(r"[.,]\s|\.$|\n", str(text).strip())[0].strip().rstrip(" .,")
+    # 문장(마침표) 단위로 첫 문장만 — 쉼표로 자르지 않아 설명이 완결되게
+    seg = re.split(r"\.\s|\.$|\n", str(text).strip())[0].strip().rstrip(" .")
     seg = re.sub(r"합니다$", "해요", seg)
     seg = re.sub(r"됩니다$", "돼요", seg)
     seg = re.sub(r"입니다$", "이에요", seg)
-    if len(seg) > 48:
-        seg = seg[:46].rstrip() + "…"
+    if len(seg) > 72:
+        seg = seg[:70].rstrip() + "…"
     return seg
 
 
@@ -204,6 +205,12 @@ def main():
     for sname in voc:
         get_subject(sname)
 
+    # 어린이용 직업 설명(멀티에이전트 검수 산출물) — 있으면 blurb로 우선 사용
+    kid_blurbs = {}
+    kp = os.path.join(BASE, "kid_blurbs.json")
+    if os.path.exists(kp):
+        kid_blurbs = json.load(open(kp, encoding="utf-8"))
+
     # ── JOB 적재 ──
     job_ids = set()
     for fp in glob.glob(os.path.join(RAW, "job", "*.json")):
@@ -218,7 +225,8 @@ def main():
             d.get("std_job_nm"), str(d.get("std_job_cd") or ""), d.get("tag"),
             int(d.get("views") or 0)))
         c.execute("INSERT OR REPLACE INTO job_card VALUES(?,?,?,?,?,?)", (
-            jid, pick_emoji(d.get("job_nm"), d.get("tag")), kidify(duties),
+            jid, pick_emoji(d.get("job_nm"), d.get("tag")),
+            kid_blurbs.get(jid) or kidify(duties),
             d.get("wage"), d.get("wage_level"), d.get("satisfication")))
         for it in d.get("jobCertiList") or []:
             cid = get_cert(it.get("name"), it.get("detail"))

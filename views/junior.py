@@ -71,19 +71,20 @@ div[data-testid="stButton"] > button:hover{border-color:#141414;background:#FAFA
   flex-wrap:nowrap!important;overflow-x:auto;gap:10px;padding:2px 2px 12px;
   scrollbar-width:thin;scroll-snap-type:x proximity;}
 .st-key-jr_strip [data-testid="stColumn"]{
-  min-width:152px!important;width:152px!important;flex:0 0 152px!important;
+  min-width:170px!important;width:170px!important;flex:0 0 170px!important;
   scroll-snap-align:start;}
 .st-key-jr_strip div[data-testid="stButton"] > button,
 .st-key-jr_strip div[data-testid="stPopover"] button{
   padding:.26rem .2rem!important;font-size:.84rem!important;border-radius:10px;}
-/* 컴팩트 카드 */
-.jr-card{border:1.5px solid #E4E4E4;border-radius:14px;padding:12px 8px 9px;
-  background:#fff;text-align:center;margin-bottom:6px}
-.jr-emoji{font-size:2.1rem;line-height:1.05;margin:.02rem 0}
-.jr-name{font-size:1.0rem;font-weight:800;color:#141414;margin:.12rem 0;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.jr-why{display:inline-block;background:#EFF4FF;color:#1D4ED8;border-radius:999px;
-  padding:.1rem .45rem;font-size:.7rem;font-weight:600;margin:.28rem 0 0;line-height:1.3}
+/* 제목 + 설명 카드 (설명을 펼치지 않고 본문에 바로 표시) */
+.jr-card{border:1.5px solid #E4E4E4;border-radius:14px;padding:13px 11px 11px;
+  background:#fff;text-align:center;margin-bottom:6px;min-height:158px}
+.jr-emoji{font-size:2.0rem;line-height:1.05;margin:.02rem 0}
+.jr-name{font-size:.98rem;font-weight:800;color:#141414;margin:.14rem 0 .25rem;
+  line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden}
+.jr-blurb{font-size:.78rem;color:#4B5563;line-height:1.38;margin:.1rem 0 0;text-align:left;
+  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
 .jr-dex{display:inline-block;border:1.5px solid #E4E4E4;border-radius:999px;
   padding:.25rem .7rem;margin:.2rem .3rem .2rem 0;font-size:.95rem;background:#fff;}
 .jr-hint{color:#9A9A9A;font-size:.82rem;margin:.1rem 0 .3rem}
@@ -189,25 +190,17 @@ with st.container(key="jr_strip"):
         meta = JOBMETA.get(name, {})
         em = meta.get("emoji", "💼")
         blurb = meta.get("blurb", "")
-        major = meta.get("major", "")
-        why = f'“{j["reasons"][0]["term"]}” 골랐어' if j.get("reasons") else ""
         with col:
             st.markdown(
                 f'<div class="jr-card"><div class="jr-emoji">{em}</div>'
                 f'<div class="jr-name" title="{name}">{name}</div>'
-                + (f'<div class="jr-why">{why}</div>' if why else "")
+                + (f'<div class="jr-blurb">{blurb}</div>' if blurb else "")
                 + '</div>', unsafe_allow_html=True)
             already = name in ss["jr_dex"]
             if st.button("✅ 모았어요" if already else "⭐ 모으기",
                          key=f"add_{name}", use_container_width=True, disabled=already):
                 ss["jr_dex"].append(name)
                 st.rerun()
-            with st.popover("자세히", use_container_width=True):
-                st.markdown(f"### {em} {name}")
-                if blurb:
-                    st.write(blurb)
-                if major:
-                    st.caption(f"🌱 커서 더 배우는 곳: {major}")
 
 # 더보기
 if total > PER_PAGE:
