@@ -53,8 +53,8 @@ CHIPS = [
     ("책", "📚", "나는 책 읽고 글 쓰는 게 좋아"),
 ]
 
-POOL = 12       # 한 발화당 가져올 직업 후보 수
-PER_PAGE = 6    # 가로 스트립에 한 번에 보여줄 카드 수
+POOL = 16       # 한 발화당 가져올 직업 후보 수
+PER_PAGE = 8    # 4열 그리드에 한 번에 보여줄 카드 수(2행)
 
 CSS = """
 <style>
@@ -65,29 +65,20 @@ div[data-testid="stButton"] > button{
   border-radius:999px;border:1.5px solid #E4E4E4;padding:.55rem .2rem;
   font-size:1.02rem;font-weight:600;background:#fff;transition:.12s;}
 div[data-testid="stButton"] > button:hover{border-color:#141414;background:#FAFAFA;}
-/* 카드 */
-/* 가로 스크롤 카드 스트립 — 세로 점유 최소화(팀원 슬라이더 안 반영) */
-.st-key-jr_strip [data-testid="stHorizontalBlock"]{
-  flex-wrap:nowrap!important;overflow-x:auto;gap:10px;padding:2px 2px 12px;
-  scrollbar-width:thin;scroll-snap-type:x proximity;}
-.st-key-jr_strip [data-testid="stColumn"]{
-  min-width:170px!important;width:170px!important;flex:0 0 170px!important;
-  scroll-snap-align:start;}
-.st-key-jr_strip div[data-testid="stButton"] > button,
-.st-key-jr_strip div[data-testid="stPopover"] button{
-  padding:.26rem .2rem!important;font-size:.84rem!important;border-radius:10px;}
-/* 제목 + 설명 카드 (설명을 펼치지 않고 본문에 바로 표시) */
-.jr-card{border:1.5px solid #E4E4E4;border-radius:14px;padding:13px 11px 11px;
-  background:#fff;text-align:center;margin-bottom:6px;min-height:158px}
-.jr-emoji{font-size:2.0rem;line-height:1.05;margin:.02rem 0}
-.jr-name{font-size:.98rem;font-weight:800;color:#141414;margin:.14rem 0 .25rem;
+/* 관심사 칩: 4열, 정방형에 가깝게(세로 크게) */
+.st-key-jr_chips div[data-testid="stButton"] > button{
+  min-height:94px;border-radius:16px;font-size:1.18rem;font-weight:700;line-height:1.35;}
+/* 직업 카드: 4열 그리드 · 세로가 긴 카드(이모지·제목 크게) */
+.jr-card{border:1.5px solid #E4E4E4;border-radius:16px;padding:22px 14px 14px;
+  background:#fff;text-align:center;margin-bottom:6px;min-height:256px}
+.jr-emoji{font-size:3.2rem;line-height:1.05;margin:.1rem 0 .25rem}
+.jr-name{font-size:1.18rem;font-weight:800;color:#141414;margin:.1rem 0 .38rem;
   line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   overflow:hidden}
-.jr-blurb{font-size:.78rem;color:#4B5563;line-height:1.38;margin:.1rem 0 0;text-align:left;
-  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.jr-blurb{font-size:.86rem;color:#4B5563;line-height:1.45;margin:.1rem 0 0;text-align:left;
+  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
 .jr-dex{display:inline-block;border:1.5px solid #E4E4E4;border-radius:999px;
   padding:.25rem .7rem;margin:.2rem .3rem .2rem 0;font-size:.95rem;background:#fff;}
-.jr-hint{color:#9A9A9A;font-size:.82rem;margin:.1rem 0 .3rem}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -112,13 +103,14 @@ st.markdown('<div class="jr-hero">🧭 M.A.P.S 주니어</div>', unsafe_allow_ht
 st.markdown('<div class="jr-sub">좋아하는 걸 말하면, 세상의 일들이 카드로 펼쳐져요!</div>',
             unsafe_allow_html=True)
 
-# ── 관심사 칩 (무입력 진입) ───────────────────────────
+# ── 관심사 칩 (무입력 진입) — 4열, 정방형에 가깝게 ────────
 st.markdown("##### 무엇을 좋아해요?")
-for row_start in range(0, len(CHIPS), 3):
-    cols = st.columns(3)
-    for c, (label, em, utter) in zip(cols, CHIPS[row_start:row_start + 3]):
-        if c.button(f"{em} {label}", key=f"chip_{label}", use_container_width=True):
-            set_query(utter)
+with st.container(key="jr_chips"):
+    for row_start in range(0, len(CHIPS), 4):
+        cols = st.columns(4)
+        for c, (label, em, utter) in zip(cols, CHIPS[row_start:row_start + 4]):
+            if c.button(f"{em} {label}", key=f"chip_{label}", use_container_width=True):
+                set_query(utter)
 
 # 직접 쓰기(보조)
 with st.expander("✏️ 직접 쓰기"):
@@ -181,26 +173,25 @@ total = len(jobs)
 start = ss["jr_offset"] % total if total else 0
 window = [jobs[(start + i) % total] for i in range(min(PER_PAGE, total))]
 
-st.markdown('<div class="jr-hint">← 좌우로 밀어서 더 봐요</div>',
-            unsafe_allow_html=True)
-with st.container(key="jr_strip"):
-    cards = st.columns(len(window))
-    for col, j in zip(cards, window):
-        name = j["name"]
-        meta = JOBMETA.get(name, {})
-        em = meta.get("emoji", "💼")
-        blurb = meta.get("blurb", "")
-        with col:
-            st.markdown(
-                f'<div class="jr-card"><div class="jr-emoji">{em}</div>'
-                f'<div class="jr-name" title="{name}">{name}</div>'
-                + (f'<div class="jr-blurb">{blurb}</div>' if blurb else "")
-                + '</div>', unsafe_allow_html=True)
-            already = name in ss["jr_dex"]
-            if st.button("✅ 모았어요" if already else "⭐ 모으기",
-                         key=f"add_{name}", use_container_width=True, disabled=already):
-                ss["jr_dex"].append(name)
-                st.rerun()
+with st.container(key="jr_grid"):
+    for row_start in range(0, len(window), 4):
+        cols = st.columns(4)
+        for col, j in zip(cols, window[row_start:row_start + 4]):
+            name = j["name"]
+            meta = JOBMETA.get(name, {})
+            em = meta.get("emoji", "💼")
+            blurb = meta.get("blurb", "")
+            with col:
+                st.markdown(
+                    f'<div class="jr-card"><div class="jr-emoji">{em}</div>'
+                    f'<div class="jr-name" title="{name}">{name}</div>'
+                    + (f'<div class="jr-blurb">{blurb}</div>' if blurb else "")
+                    + '</div>', unsafe_allow_html=True)
+                already = name in ss["jr_dex"]
+                if st.button("✅ 모았어요" if already else "⭐ 모으기",
+                             key=f"add_{name}", use_container_width=True, disabled=already):
+                    ss["jr_dex"].append(name)
+                    st.rerun()
 
 # 더보기
 if total > PER_PAGE:
