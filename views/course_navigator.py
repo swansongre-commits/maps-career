@@ -509,11 +509,18 @@ def render_s3():
 # ──────────────────────────────────────────────────────────────────
 # S4 — 우리 학교 개설여부 × 내 이수 현황
 # ──────────────────────────────────────────────────────────────────
-@st.dialog("과목 선택이 합불을 정하지 않아요")
-def _first_visit_modal():
-    st.write("어떤 과목을 골랐는지가 대학 합격을 결정하지 않아. "
-             "참고만 하고, 진짜 결정은 담임선생님과 함께해줘.")
-    if st.button("알겠어", type="primary", use_container_width=True):
+def _first_visit_notice():
+    """팝업(모달) 대신 화면 안에 자연스럽게 얹히는 안내 카드 — 경고창처럼 보이지 않게."""
+    st.markdown(
+        '<div class="cn-card">'
+        '<div class="cn-cathead">이걸 알고 이용해주세요</div>'
+        '<p style="font-size:0.88rem;color:#3F3F3F;line-height:1.75;margin:6px 0 10px">'
+        '과목 선택이 합불을 정하지 않아요. 참고만 하고, 진짜 결정은 담임선생님과 함께해줘.<br>'
+        '<b>이 데이터의 출처</b> — 개설과목은 학교알리미 2025·2026 공시, 권장 선택과목은 '
+        '커리어넷 학과정보 기준이야.<br>'
+        '실제 지원서를 쓸 땐 꼭 <b>재학 중인 학교</b>와 <b>목표 대학의 모집요강</b>을 확인해줘.'
+        '</p></div>', unsafe_allow_html=True)
+    if st.button("확인했어요", key="cn_ack_notice"):
         st.session_state["cn_first_visit_modal_shown"] = True
         st.rerun()
 
@@ -525,7 +532,7 @@ def render_s4():
         _back()
 
     if not st.session_state["cn_first_visit_modal_shown"]:
-        _first_visit_modal()
+        _first_visit_notice()
 
     st.markdown(f"### {p['school_name']} 개설 현황")
     st.caption("2025·2026 공시 기준")
