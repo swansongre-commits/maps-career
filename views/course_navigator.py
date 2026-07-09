@@ -178,7 +178,7 @@ def _reason_sentence(reasons, chip_mode):
         return ""
     best = next((r for r in reasons if r.get("via") == "쉬운말"), reasons[0])
     term = best.get("term", "")
-    return f"'{term}' 칩을 골라서" if chip_mode else f"네가 '{term}'이라고 해서"
+    return f"'{term}' 칩을 골라주셔서" if chip_mode else f"'{term}'이라고 하셔서"
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ def _plan_subjects():
 # ──────────────────────────────────────────────────────────────────
 def render_s0():
     st.markdown("## 고교학점제 과목선택 네비게이터")
-    st.markdown('<p class="cn-sub">네 학교에서 실제로 신청할 수 있는 과목으로 알려줄게</p>',
+    st.markdown('<p class="cn-sub">학교에서 실제로 신청할 수 있는 과목으로 알려드릴게요</p>',
                 unsafe_allow_html=True)
 
     p = st.session_state["cn_profile"]
@@ -325,14 +325,14 @@ def render_s1():
     if st.button("← 뒤로"):
         _back()
     st.caption(f'{p["school_name"]} · {p["grade"]}')
-    st.markdown("### 요즘 뭐가 제일 끌려?")
-    st.markdown('<p class="cn-sub">한 마디면 충분해</p>', unsafe_allow_html=True)
+    st.markdown("### 요즘 뭐가 제일 끌리세요?")
+    st.markdown('<p class="cn-sub">한 마디면 충분해요</p>', unsafe_allow_html=True)
 
     utterance = st.text_input("발화", key="cn_speech_input",
                                placeholder="예: 동물 돌보는 일이 좋아요",
                                label_visibility="collapsed")
 
-    st.markdown("아니면 골라봐 (2~3개)")
+    st.markdown("아니면 골라보세요 (2~3개)")
     chips = st.session_state["cn_interests"]["chips"]
     with st.container(key="cn_chip_grid"):
         for row_start in range(0, len(CHIPS), 4):
@@ -352,7 +352,7 @@ def render_s1():
     if st.button("말한 걸로 찾기", type="primary", use_container_width=True):
         st.session_state["cn_interests"]["utterance"] = utterance
         if not utterance.strip() and not chips:
-            st.warning("한 마디만 말해주거나 칩을 하나 골라줘.")
+            st.warning("한 마디만 말씀해주시거나 칩을 하나 골라주세요.")
         else:
             chip_only = not utterance.strip() and bool(chips)
             speech = f"{utterance} {' '.join(chips)}".strip()
@@ -394,13 +394,13 @@ def render_s2():
     st.markdown("### 이런 갈래로 이어져")
 
     if c["empty"]:
-        st.info("맞는 걸 못 찾았어. 이렇게 말해볼래?\n\n"
+        st.info("맞는 걸 못 찾았어요. 이렇게 말씀해보시겠어요?\n\n"
                  "\"동물 돌보는 일\" · \"그림 그리는 거\" · \"사람들 앞에서 말하는 거\"")
         if st.button("다시 입력하기"):
             _go("s1")
         return
 
-    st.markdown('<p class="cn-sub">점수·순위는 없어. 근거만 보여줄게</p>', unsafe_allow_html=True)
+    st.markdown('<p class="cn-sub">점수·순위는 없어요. 근거만 보여드릴게요</p>', unsafe_allow_html=True)
     for cat in c["categories"]:
         with st.container(key=f"cn_cat_{cat['dae']}"):
             st.markdown(f'<div class="cn-card"><div class="cn-cathead">'
@@ -417,7 +417,7 @@ def render_s2():
                     _go("s3")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("다른 갈래 볼래"):
+    if st.button("다른 갈래 보기"):
         _go("s1")
 
 
@@ -432,7 +432,7 @@ def render_s3():
     if st.button("← 뒤로"):
         _back()
     st.markdown(f"### {name}")
-    st.markdown("2·3학년 때 이런 과목이 도움 돼")
+    st.markdown("2·3학년 때 이런 과목이 도움 돼요")
     st.caption("커리어넷 학과정보 기준")
 
     rec = R.major_by_name(name)
@@ -458,7 +458,7 @@ def render_s3():
                 ach = R.achievements_for_subject(s)
                 items = ach.get("items") if ach else []
                 if not items:
-                    st.caption("성취기준 정보가 아직 없어.")
+                    st.caption("성취기준 정보가 아직 없어요.")
                 else:
                     show_all_key = f"cn_ach_all_{typ}_{s}"
                     show_all = st.session_state.get(show_all_key, False)
@@ -485,27 +485,27 @@ def render_s3():
                 names = ", ".join(u["대학명"] for u in unis[:8])
                 st.markdown(f"- **{region}**: {names}")
         else:
-            st.caption("설치대학 정보가 아직 없어.")
+            st.caption("설치대학 정보가 아직 없어요.")
 
     st.divider()
     seen = name in st.session_state["cn_seen_sheet_for"]
     if not seen:
-        st.markdown("#### 확인 전에 하나만!")
-        st.caption("이 중에 벌써 듣고 있는 게 있어? (없으면 건너뛰어도 돼)")
+        st.markdown("#### 확인 전에 하나만요!")
+        st.caption("이 중에 벌써 듣고 있는 과목이 있으신가요? (없으면 건너뛰어도 괜찮아요)")
         st.markdown(
-            '<div class="cn-banner">1학년 공통과목(국어·수학·통합과학 등)은 체크 안 해도 돼<br>'
-            '<b>들었어</b> = 이미 끝난 과목 · <b>신청해뒀어</b> = 다음 학기 신청만 해둔 것'
-            '(아직 바꿀 수 있어, 나중에 다시 물어볼게)</div>',
+            '<div class="cn-banner">1학년 공통과목(국어·수학·통합과학 등)은 체크하지 않아도 돼요<br>'
+            '<b>들었어요</b> = 이미 끝난 과목 · <b>신청해뒀어요</b> = 다음 학기 신청만 해둔 것'
+            '(아직 바꿀 수 있어요, 나중에 다시 여쭤볼게요)</div>',
             unsafe_allow_html=True)
         for typ, s in all_subs:
             cur = _taken_status(s)
             cols = st.columns([3, 1, 1])
             cols[0].markdown(_sub_row_html(typ, s), unsafe_allow_html=True)
-            if cols[1].button("들었어", key=f"cn_take_{typ}_{s}",
+            if cols[1].button("들었어요", key=f"cn_take_{typ}_{s}",
                                type="primary" if cur == "이수함" else "secondary"):
                 _set_taken(s, "이수함", typ)
                 st.rerun()
-            if cols[2].button("신청해뒀어", key=f"cn_apply_{typ}_{s}",
+            if cols[2].button("신청해뒀어요", key=f"cn_apply_{typ}_{s}",
                                type="primary" if cur == "신청함" else "secondary"):
                 _set_taken(s, "신청함", typ)
                 st.rerun()
@@ -529,10 +529,10 @@ def _first_visit_notice():
     """모달이지만 경고·컨펌창처럼 안 보이게 — 부드러운 카피와 얌전한 버튼(CSS는 상단 참고)."""
     st.markdown(
         '<p style="font-size:0.9rem;color:#3F3F3F;line-height:1.8;margin:2px 0 12px">'
-        '과목 선택이 합불을 정하지 않아요. 참고만 하고, 진짜 결정은 담임선생님과 함께해줘.<br><br>'
+        '과목 선택이 합불을 정하지 않아요. 참고만 하시고, 진짜 결정은 담임 선생님과 함께해주세요.<br><br>'
         '<b>이 데이터의 출처</b> — 개설과목은 학교알리미 2025·2026 공시, 권장 선택과목은 '
-        '커리어넷 학과정보 기준이야.<br><br>'
-        '실제 지원서를 쓸 땐 꼭 <b>재학 중인 학교</b>와 <b>목표 대학의 모집요강</b>을 확인해줘.'
+        '커리어넷 학과정보 기준이에요.<br><br>'
+        '실제 지원서를 쓰실 땐 꼭 <b>재학 중인 학교</b>와 <b>목표 대학의 모집요강</b>을 확인해주세요.'
         '</p>', unsafe_allow_html=True)
     _, bc = st.columns([3, 1])
     with bc:
@@ -582,8 +582,8 @@ def render_s4():
         unsafe_allow_html=True)
 
     if not avail["have_school"]:
-        st.markdown('<div class="cn-banner warn">이 학교 과목 정보가 아직 없어 — '
-                    '담임선생님께 확인해줘.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="cn-banner warn">이 학교 과목 정보가 아직 없어요 — '
+                    '담임 선생님께 확인해주세요.</div>', unsafe_allow_html=True)
 
     # 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장할 수 있어(예: '인공지능 수학')
     # 과목명 기준으로 한 번만 담되, 처음 만난 유형을 표시용으로 남긴다.
@@ -615,7 +615,7 @@ def render_s4():
                     to_add = [(typ, subj) for typ, subj in selectable
                               if st.session_state.get(sel_key(typ, subj))]
                     if not to_add:
-                        st.warning("체크한 과목이 없어.")
+                        st.warning("체크한 과목이 없어요.")
                     else:
                         for typ, subj in to_add:
                             st.session_state["cn_plan"].append(
@@ -667,7 +667,7 @@ def render_s4():
                     st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
             st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="cn-banner">ⓘ 신청 전 담임선생님과 꼭 확인해줘</div>',
+    st.markdown('<div class="cn-banner">ⓘ 신청 전 담임 선생님과 꼭 확인해주세요</div>',
                 unsafe_allow_html=True)
     if st.button("내 목록 보기 →", type="primary", use_container_width=True):
         _go("s5")
@@ -694,23 +694,23 @@ def _decode_share(token):
 
 
 # ──────────────────────────────────────────────────────────────────
-# S5 — 담임쌤과 상의할 목록 (결승선)
+# S5 — 담임 선생님과 상의할 목록 (결승선)
 # ──────────────────────────────────────────────────────────────────
 def render_s5():
     p = st.session_state["cn_profile"]
     if st.button("← 뒤로"):
         _back()
-    st.markdown("### 담임쌤과 상의할 목록")
+    st.markdown("### 담임 선생님과 상의할 목록")
     st.markdown(
         '<div class="cn-banner">실제 개설 학년·학기와 신청 가능 개수는 학교 편제표에 따라 '
-        '달라 — 그래서 담임쌤과 상의가 필요해</div>', unsafe_allow_html=True)
+        '달라요 — 그래서 담임 선생님과 상의가 필요해요</div>', unsafe_allow_html=True)
 
     plan = st.session_state["cn_plan"]
     taken = st.session_state["cn_taken"]
 
     if not plan and not taken:
-        st.info("아직 담거나 체크한 게 없어.")
-        if st.button("추천으로 돌아갈래?"):
+        st.info("아직 담거나 체크한 게 없어요.")
+        if st.button("추천으로 돌아가기"):
             _go("s2")
         return
 
@@ -739,7 +739,7 @@ def render_s5():
 
     if st.button("공유 링크 만들기", type="primary", use_container_width=True):
         st.query_params["share"] = _encode_share()
-        st.success("주소창의 링크를 복사해서 담임선생님께 보내줘.")
+        st.success("주소창의 링크를 복사해서 담임 선생님께 보내주세요.")
     st.caption(f"학교: {p['school_name']} · {p['grade']}"
                + (f" {p['semester']}학기" if p["grade"] == "고1" else ""))
 
@@ -750,15 +750,15 @@ def render_s5():
 @st.dialog("과목이 우리 학교에 없을 때")
 def _alt_dialog(typ, subj):
     st.markdown(_sub_row_html(typ, subj, bullet=""), unsafe_allow_html=True)
-    st.markdown('<p class="cn-sub">안 열렸다고 길이 닫힌 건 아니야</p>', unsafe_allow_html=True)
+    st.markdown('<p class="cn-sub">안 열렸다고 길이 닫힌 건 아니에요</p>', unsafe_allow_html=True)
 
     st.markdown(
         '<div class="cn-card"><div class="cn-cathead">① 학교 밖에서 듣는 길</div>'
         '· 학교 간 공동교육과정<br>· 시도 온라인학교 / 교실온닷<br>'
-        '(담임선생님·교육과정부장님께 문의해줘)</div>', unsafe_allow_html=True)
+        '(담임 선생님·교육과정부장님께 문의해주세요)</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="cn-banner">ⓘ 개설 신청이 많으면 학교가 열기도 해 — '
-        '수요조사에 꼭 적어봐</div>', unsafe_allow_html=True)
+        '<div class="cn-banner">ⓘ 개설 신청이 많으면 학교가 열기도 해요 — '
+        '수요조사에 꼭 적어주세요</div>', unsafe_allow_html=True)
     if st.button("닫기", key="cn_alt_close", use_container_width=True):
         st.rerun()
 
@@ -780,7 +780,7 @@ def render_s7_read(data):
             st.markdown(_sub_row_html(item.get("type", ""), item["subject"]),
                         unsafe_allow_html=True)
     else:
-        st.caption("아직 없음")
+        st.caption("아직 없어요")
 
     st.markdown("**이수 체크**")
     taken = data.get("taken", [])
@@ -790,7 +790,7 @@ def render_s7_read(data):
             st.markdown(mark + " " + _sub_row_html(t.get("type", ""), t["subject"]),
                         unsafe_allow_html=True)
     else:
-        st.caption("아직 없음")
+        st.caption("아직 없어요")
 
     st.caption("데이터: 학교알리미 2025·2026 공시 기준 · 학생 셀프체크 기반(참고용)")
     if st.button("나도 해보기", type="primary"):
@@ -805,7 +805,7 @@ if "share" in st.query_params:
     try:
         render_s7_read(_decode_share(st.query_params["share"]))
     except Exception:
-        st.error("공유 링크를 읽을 수 없어.")
+        st.error("공유 링크를 읽을 수 없어요.")
 else:
     _init_state()
     STEP_RENDER = {
