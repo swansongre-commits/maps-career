@@ -51,8 +51,22 @@ FABRIK = {
 CSS = f"""
 <style>
 .stApp {{ background: {FABRIK['bg']}; color: {FABRIK['text']}; }}
+/* 버튼 — 흰 배경·얇은 테두리·8px 라운드로 통일(FABRIK 기본형) */
+div[data-testid="stButton"] > button {{
+    width: 100%; background: #FFFFFF; color: {FABRIK['text']};
+    border: 1px solid {FABRIK['line_strong']}; border-radius: 8px;
+    padding: 0.5rem 0.85rem; font-weight: 700; transition: all .12s ease; }}
+div[data-testid="stButton"] > button:hover {{ border-color: {FABRIK['cta']}; background: #FAFAFA; }}
+div[data-testid="stButton"] > button[kind="primary"] {{
+    background: {FABRIK['cta']}; color: #fff; border-color: {FABRIK['cta']}; }}
+div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; }}
+/* 담기/담음/하는 중/확인 필요 — 실제 버튼과 똑같은 모양으로 통일. 클릭 불가 상태만 흐리게 */
+.cn-statusbtn {{ display: block; width: 100%; box-sizing: border-box; text-align: center;
+    padding: 0.5rem 0.85rem; border-radius: 8px; border: 1px solid {FABRIK['border']};
+    font-weight: 700; font-size: 0.95rem; background: #FAFAFA; color: {FABRIK['soft']}; }}
+.cn-row-line {{ border-bottom: 1px solid {FABRIK['border']}; margin: 2px 0 8px; }}
 .cn-sub {{ color: {FABRIK['muted']}; font-size: 0.92rem; margin: -0.3rem 0 1rem; }}
-.cn-banner {{ background: {FABRIK['surface_soft']}; border: 1px solid {FABRIK['border']};
+.cn-banner {{ background: #FFFFFF; border: 1px solid {FABRIK['border']};
     border-radius: 8px; padding: 10px 14px; font-size: 0.86rem; color: {FABRIK['muted']};
     margin-bottom: 14px; }}
 .cn-banner.warn {{ border-color: #E0A94F; color: #8A6320; background: #FFF8EC; }}
@@ -563,12 +577,15 @@ def render_s4():
         for typ, subj in selectable:
             st.session_state[sel_key(typ, subj)] = val
 
+    ROW_COLS = [0.5, 1.1, 3, 1.7]  # [체크박스 · 구분 · 과목 · 상태/버튼] — 헤더·본문·전체선택 공통
+
     if selectable:
-        hc1, hc2 = st.columns([3, 2])
-        with hc1:
-            st.checkbox(f"전체선택 ({len(selectable)}과목)", key=f"cn_selall_{name}",
-                        on_change=_toggle_select_all)
-        with hc2:
+        hc = st.columns(ROW_COLS)
+        with hc[0]:
+            st.checkbox("전체", key=f"cn_selall_{name}", on_change=_toggle_select_all,
+                        label_visibility="collapsed")
+        hc[1].caption(f"{len(selectable)}과목")
+        with hc[3]:
             if st.button("체크한 항목 담기", key="cn_add_checked",
                          type="primary", use_container_width=True):
                 to_add = [(typ, subj) for typ, subj in selectable
@@ -582,21 +599,26 @@ def render_s4():
                         st.session_state[sel_key(typ, subj)] = False
                     st.session_state[f"cn_selall_{name}"] = False
                     st.rerun()
+        st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
-    hcols = st.columns([1.1, 3, 1.6, 0.6])
-    hcols[0].caption("구분")
-    hcols[1].caption("과목")
-    hcols[3].caption("선택")
+    hcols = st.columns(ROW_COLS)
+    hcols[1].caption("구분")
+    hcols[2].caption("과목")
+    hcols[3].caption("상태")
+    st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     for typ, subj, kind in rows:
         bullet = "⬜" if kind == "no" else "❓" if kind == "q" else "•"
-        cols = st.columns([1.1, 3, 1.6, 0.6])
+        cols = st.columns(ROW_COLS)
         with cols[0]:
+            if kind == "ok" and subj not in plan_set:
+                st.checkbox("선택", key=sel_key(typ, subj), label_visibility="collapsed")
+        with cols[1]:
             st.markdown(_pill_html(typ), unsafe_allow_html=True)
-        cols[1].markdown(f"{bullet} {subj}")
-        with cols[2]:
+        cols[2].markdown(f"{bullet} {subj}")
+        with cols[3]:
             if kind == "done":
-                st.markdown('<span class="cn-badge done">✓ 하는 중</span>', unsafe_allow_html=True)
+                st.markdown('<div class="cn-statusbtn">하는 중</div>', unsafe_allow_html=True)
             elif kind == "applied":
                 if st.button("신청해뒀네 →", key=f"cn_appl_{typ}_{subj}", use_container_width=True):
                     if subj not in plan_set:
@@ -606,21 +628,19 @@ def render_s4():
                     st.rerun()
             elif kind == "ok":
                 if subj in plan_set:
-                    st.markdown('<span class="cn-badge done">담음</span>', unsafe_allow_html=True)
-                elif st.button("목록에 담기", key=f"cn_add_{typ}_{subj}", use_container_width=True):
+                    st.markdown('<div class="cn-statusbtn">담음</div>', unsafe_allow_html=True)
+                elif st.button("담기", key=f"cn_add_{typ}_{subj}", use_container_width=True):
                     st.session_state["cn_plan"].append(
                         {"subject": subj, "from_major": name, "type": typ})
                     st.rerun()
             elif kind == "no":
-                if st.button("대안 보기 →", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
+                if st.button("대안 보기", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
                     st.session_state["cn_alt_subject"] = subj
                     st.session_state["cn_alt_type"] = typ
                     _go("s6")
             else:
-                st.markdown('<span class="cn-badge q">담임 확인</span>', unsafe_allow_html=True)
-        with cols[3]:
-            if kind == "ok" and subj not in plan_set:
-                st.checkbox("선택", key=sel_key(typ, subj), label_visibility="collapsed")
+                st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
+        st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="cn-banner">ⓘ 신청 전 담임선생님과 꼭 확인해줘</div>',
                 unsafe_allow_html=True)
