@@ -73,6 +73,13 @@ CSS = f"""
 .cn-badge.done {{ background: #E9F7EF; color: #1E7A46; border: 1px solid #A3E0BE; }}
 .cn-badge.applied {{ background: #FFF3D6; color: #8A6320; border: 1px solid #E9C77E; }}
 .cn-badge.q {{ background: {FABRIK['surface_soft']}; color: {FABRIK['muted']}; border: 1px solid {FABRIK['border']}; }}
+.cn-pill {{ display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.76rem;
+    font-weight: 800; white-space: nowrap; }}
+.cn-pill.il {{ background: #FCE7E9; color: #B23A48; }}
+.cn-pill.jr {{ background: #E3F5E9; color: #1F8A54; }}
+.cn-pill.yh {{ background: #E5EEFB; color: #2A5DB0; }}
+.cn-row {{ display: flex; align-items: center; gap: 8px; min-height: 38px; }}
+div[data-testid="stCheckbox"] {{ display: flex; justify-content: flex-end; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -202,8 +209,24 @@ def _set_taken(subject, status, typ=""):
 
 
 def _sub_label(typ, subject):
-    """과목명 목록에 유형(일반/진로/융합) 접두를 붙인 표시용 라벨."""
+    """과목명 목록에 유형(일반/진로/융합) 접두를 붙인 표시용 라벨(순수 텍스트 —
+    st.expander 라벨처럼 HTML을 못 쓰는 자리용)."""
     return f"{typ} · {subject}" if typ else subject
+
+
+PILL_CODE = {"일반": "il", "진로": "jr", "융합": "yh"}
+
+
+def _pill_html(typ):
+    code = PILL_CODE.get(typ)
+    return f'<span class="cn-pill {code}">{typ}</span>' if code else ""
+
+
+def _sub_row_html(typ, subject, bullet="•"):
+    """유형 필(pill) + 불릿 + 과목명 — HTML 렌더 가능한 자리(st.markdown unsafe_allow_html)용."""
+    pill = _pill_html(typ)
+    mid = f" {bullet} " if bullet else " "
+    return f"{pill}{mid}{subject}" if pill else f"{bullet} {subject}".strip()
 
 
 def _plan_subjects():
@@ -441,7 +464,7 @@ def render_s3():
         for typ, s in all_subs:
             cur = _taken_status(s)
             cols = st.columns([3, 1, 1])
-            cols[0].markdown(_sub_label(typ, s))
+            cols[0].markdown(_sub_row_html(typ, s), unsafe_allow_html=True)
             if cols[1].button("들었어", key=f"cn_take_{typ}_{s}",
                                type="primary" if cur == "이수함" else "secondary"):
                 _set_taken(s, "이수함", typ)
@@ -521,24 +544,50 @@ def render_s4():
     # 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장할 수 있어(예: '인공지능 수학')
     # 과목명 기준으로 한 번만 담되, 처음 만난 유형을 표시용으로 남긴다.
     seen_subj = set()
-    not_in_plan = []
+    selectable = []
     for typ, subj, kind in rows:
         if kind == "ok" and subj not in plan_set and subj not in seen_subj:
             seen_subj.add(subj)
-            not_in_plan.append((typ, subj))
-    if not_in_plan:
-        if st.button(f"담을 수 있는 {len(not_in_plan)}과목 전체 담기",
-                     key="cn_add_all", use_container_width=True):
-            for typ, subj in not_in_plan:
-                st.session_state["cn_plan"].append(
-                    {"subject": subj, "from_major": name, "type": typ})
-            st.rerun()
+            selectable.append((typ, subj))
+    sel_key = lambda typ, subj: f"cn_sel_{name}_{typ}_{subj}"  # noqa: E731
+
+    def _toggle_select_all():
+        val = st.session_state[f"cn_selall_{name}"]
+        for typ, subj in selectable:
+            st.session_state[sel_key(typ, subj)] = val
+
+    if selectable:
+        hc1, hc2 = st.columns([3, 2])
+        with hc1:
+            st.checkbox(f"전체선택 ({len(selectable)}과목)", key=f"cn_selall_{name}",
+                        on_change=_toggle_select_all)
+        with hc2:
+            if st.button("체크한 항목 담기", key="cn_add_checked",
+                         type="primary", use_container_width=True):
+                to_add = [(typ, subj) for typ, subj in selectable
+                          if st.session_state.get(sel_key(typ, subj))]
+                if not to_add:
+                    st.warning("체크한 과목이 없어.")
+                else:
+                    for typ, subj in to_add:
+                        st.session_state["cn_plan"].append(
+                            {"subject": subj, "from_major": name, "type": typ})
+                        st.session_state[sel_key(typ, subj)] = False
+                    st.session_state[f"cn_selall_{name}"] = False
+                    st.rerun()
+
+    hcols = st.columns([1.1, 3, 1.6, 0.6])
+    hcols[0].caption("구분")
+    hcols[1].caption("과목")
+    hcols[3].caption("선택")
 
     for typ, subj, kind in rows:
-        icon = "⬜" if kind == "no" else "❓" if kind == "q" else "✅"
-        cols = st.columns([3, 1.4])
-        cols[0].markdown(f"{icon} {_sub_label(typ, subj)}")
-        with cols[1]:
+        bullet = "⬜" if kind == "no" else "❓" if kind == "q" else "•"
+        cols = st.columns([1.1, 3, 1.6, 0.6])
+        with cols[0]:
+            st.markdown(_pill_html(typ), unsafe_allow_html=True)
+        cols[1].markdown(f"{bullet} {subj}")
+        with cols[2]:
             if kind == "done":
                 st.markdown('<span class="cn-badge done">✓ 하는 중</span>', unsafe_allow_html=True)
             elif kind == "applied":
@@ -562,6 +611,9 @@ def render_s4():
                     _go("s6")
             else:
                 st.markdown('<span class="cn-badge q">담임 확인</span>', unsafe_allow_html=True)
+        with cols[3]:
+            if kind == "ok" and subj not in plan_set:
+                st.checkbox("선택", key=sel_key(typ, subj), label_visibility="collapsed")
 
     st.markdown('<div class="cn-banner">ⓘ 신청 전 담임선생님과 꼭 확인해줘</div>',
                 unsafe_allow_html=True)
@@ -612,7 +664,8 @@ def render_s5():
     for i, item in enumerate(list(plan)):
         cols = st.columns([4, 1])
         tag = " 📝" if _taken_status(item["subject"]) == "신청함" else ""
-        cols[0].markdown(f"- {_sub_label(item.get('type', ''), item['subject'])}{tag}")
+        cols[0].markdown(_sub_row_html(item.get("type", ""), item["subject"]) + tag,
+                          unsafe_allow_html=True)
         if cols[1].button("빼기", key=f"cn_rm_{i}"):
             plan.pop(i)
             st.rerun()
@@ -622,7 +675,8 @@ def render_s5():
         st.markdown("**이미 듣고 있거나 신청한 과목**")
         for t in taken:
             mark = "✓" if t["status"] == "이수함" else "📝"
-            st.markdown(f"- {mark} {_sub_label(t.get('type', ''), t['subject'])}")
+            st.markdown(mark + " " + _sub_row_html(t.get("type", ""), t["subject"]),
+                        unsafe_allow_html=True)
 
     majors = sorted({item["from_major"] for item in plan})
     st.markdown(f'<div class="cn-sub">이 목록이 이어주는 진로: <b>{" · ".join(majors)}</b></div>',
@@ -643,7 +697,8 @@ def render_s6():
     typ = st.session_state.get("cn_alt_type", "")
     if st.button("← 뒤로"):
         _back()
-    st.markdown(f"### '{_sub_label(typ, subj)}'이 우리 학교에 없을 때")
+    st.markdown(f"### '{_sub_row_html(typ, subj, bullet='')}'이 우리 학교에 없을 때",
+                unsafe_allow_html=True)
     st.markdown('<p class="cn-sub">안 열렸다고 길이 닫힌 건 아니야</p>', unsafe_allow_html=True)
 
     st.markdown(
@@ -669,7 +724,8 @@ def render_s7_read(data):
     plan = data.get("plan", [])
     if plan:
         for item in plan:
-            st.markdown(f"- {_sub_label(item.get('type', ''), item['subject'])}")
+            st.markdown(_sub_row_html(item.get("type", ""), item["subject"]),
+                        unsafe_allow_html=True)
     else:
         st.caption("아직 없음")
 
@@ -678,7 +734,8 @@ def render_s7_read(data):
     if taken:
         for t in taken:
             mark = "✓" if t["status"] == "이수함" else "📝"
-            st.markdown(f"- {mark} {_sub_label(t.get('type', ''), t['subject'])}")
+            st.markdown(mark + " " + _sub_row_html(t.get("type", ""), t["subject"]),
+                        unsafe_allow_html=True)
     else:
         st.caption("아직 없음")
 
