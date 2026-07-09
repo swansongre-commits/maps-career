@@ -45,7 +45,7 @@ FABRIK = {
     "bg": "#F5F5F5", "surface": "#FFFFFF", "surface_soft": "#F0F0F0",
     "border": "#E4E4E4", "line_strong": "#C9C9C9",
     "cta": "#141414", "cta_soft": "#EDEDED",
-    "text": "#141414", "ink_mid": "#3F3F3F", "muted": "#6B6B6B",
+    "text": "#141414", "ink_mid": "#3F3F3F", "muted": "#6B6B6B", "soft": "#9A9A9A",
 }
 
 CSS = f"""
