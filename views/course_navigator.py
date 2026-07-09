@@ -112,6 +112,9 @@ div[data-testid="stDialog"] h2, div[data-testid="stDialog"] [data-testid="stMark
 div[data-testid="stDialog"] button[aria-label="Close"] {{
     border: none !important; background: transparent !important; opacity: .5; }}
 div[data-testid="stDialog"] button[aria-label="Close"]:hover {{ opacity: 1; }}
+/* S4 표 — 체크박스·필·과목명·버튼 높이가 서로 달라 위쪽 기준으로 삐뚤빼뚤해 보이던 것을
+   각 행의 아래쪽 기준으로 맞춘다 */
+[class*="cn_s4_table"] div[data-testid="stHorizontalBlock"] {{ align-items: flex-end; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -599,69 +602,70 @@ def render_s4():
 
     ROW_COLS = [0.5, 1.1, 3, 1.7]  # [체크박스 · 구분 · 과목 · 상태/버튼] — 헤더·본문·전체선택 공통
 
-    if selectable:
-        # 체크박스 위젯이 인스턴스화된 뒤에는 같은 실행 안에서 그 세션 상태를 직접
-        # 바꿀 수 없다(StreamlitAPIException) — 그래서 버튼 처리 로직을 체크박스보다
-        # 먼저(코드 순서상) 실행해 리셋 후 즉시 rerun한다. 화면상 좌우 배치는 컬럼이
-        # 그대로 지켜준다.
-        hc = st.columns(ROW_COLS)
-        with hc[3]:
-            if st.button("체크한 항목 담기", key="cn_add_checked",
-                         type="primary", use_container_width=True):
-                to_add = [(typ, subj) for typ, subj in selectable
-                          if st.session_state.get(sel_key(typ, subj))]
-                if not to_add:
-                    st.warning("체크한 과목이 없어.")
-                else:
-                    for typ, subj in to_add:
+    with st.container(key="cn_s4_table"):
+        if selectable:
+            # 체크박스 위젯이 인스턴스화된 뒤에는 같은 실행 안에서 그 세션 상태를 직접
+            # 바꿀 수 없다(StreamlitAPIException) — 그래서 버튼 처리 로직을 체크박스보다
+            # 먼저(코드 순서상) 실행해 리셋 후 즉시 rerun한다. 화면상 좌우 배치는 컬럼이
+            # 그대로 지켜준다.
+            hc = st.columns(ROW_COLS)
+            with hc[3]:
+                if st.button("체크한 항목 담기", key="cn_add_checked",
+                             type="primary", use_container_width=True):
+                    to_add = [(typ, subj) for typ, subj in selectable
+                              if st.session_state.get(sel_key(typ, subj))]
+                    if not to_add:
+                        st.warning("체크한 과목이 없어.")
+                    else:
+                        for typ, subj in to_add:
+                            st.session_state["cn_plan"].append(
+                                {"subject": subj, "from_major": name, "type": typ})
+                            st.session_state[sel_key(typ, subj)] = False
+                        st.session_state[f"cn_selall_{name}"] = False
+                        st.rerun()
+            with hc[0]:
+                st.checkbox("전체", key=f"cn_selall_{name}", on_change=_toggle_select_all,
+                            label_visibility="collapsed")
+            hc[1].caption(f"전체선택 ({len(selectable)}과목)")
+            st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
+
+        hcols = st.columns(ROW_COLS)
+        hcols[1].caption("구분")
+        hcols[2].caption("과목")
+        hcols[3].caption("상태")
+        st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
+
+        for typ, subj, kind in rows:
+            # 이모지 불릿(⬜/❓)은 폰트에 따라 색 있는 네모로 깨져 보이는 경우가 있어
+            # 전부 같은 텍스트 불릿으로 통일 — 상태는 오른쪽 버튼 문구로 충분히 구분됨.
+            bullet = "•"
+            cols = st.columns(ROW_COLS)
+            with cols[0]:
+                if kind == "ok" and subj not in plan_set:
+                    st.checkbox("선택", key=sel_key(typ, subj), label_visibility="collapsed")
+            with cols[1]:
+                st.markdown(_pill_html(typ), unsafe_allow_html=True)
+            cols[2].markdown(f"{bullet} {subj}")
+            with cols[3]:
+                if kind == "done":
+                    st.markdown('<div class="cn-statusbtn">하는 중</div>', unsafe_allow_html=True)
+                elif kind == "applied":
+                    # 신청함 상태는 이미 S5 '이미 듣고 있거나 신청한 과목'에서 taken 목록으로
+                    # 보여주므로 여기서 별도로 담을 필요가 없다 — 하는 중과 같은 비활성 표시로 통일.
+                    st.markdown('<div class="cn-statusbtn">신청함</div>', unsafe_allow_html=True)
+                elif kind == "ok":
+                    if subj in plan_set:
+                        st.markdown('<div class="cn-statusbtn">담음</div>', unsafe_allow_html=True)
+                    elif st.button("담기", key=f"cn_add_{typ}_{subj}", use_container_width=True):
                         st.session_state["cn_plan"].append(
                             {"subject": subj, "from_major": name, "type": typ})
-                        st.session_state[sel_key(typ, subj)] = False
-                    st.session_state[f"cn_selall_{name}"] = False
-                    st.rerun()
-        with hc[0]:
-            st.checkbox("전체", key=f"cn_selall_{name}", on_change=_toggle_select_all,
-                        label_visibility="collapsed")
-        hc[1].caption(f"{len(selectable)}과목")
-        st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
-
-    hcols = st.columns(ROW_COLS)
-    hcols[1].caption("구분")
-    hcols[2].caption("과목")
-    hcols[3].caption("상태")
-    st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
-
-    for typ, subj, kind in rows:
-        # 이모지 불릿(⬜/❓)은 폰트에 따라 색 있는 네모로 깨져 보이는 경우가 있어
-        # 전부 같은 텍스트 불릿으로 통일 — 상태는 오른쪽 버튼 문구로 충분히 구분됨.
-        bullet = "•"
-        cols = st.columns(ROW_COLS)
-        with cols[0]:
-            if kind == "ok" and subj not in plan_set:
-                st.checkbox("선택", key=sel_key(typ, subj), label_visibility="collapsed")
-        with cols[1]:
-            st.markdown(_pill_html(typ), unsafe_allow_html=True)
-        cols[2].markdown(f"{bullet} {subj}")
-        with cols[3]:
-            if kind == "done":
-                st.markdown('<div class="cn-statusbtn">하는 중</div>', unsafe_allow_html=True)
-            elif kind == "applied":
-                # 신청함 상태는 이미 S5 '이미 듣고 있거나 신청한 과목'에서 taken 목록으로
-                # 보여주므로 여기서 별도로 담을 필요가 없다 — 하는 중과 같은 비활성 표시로 통일.
-                st.markdown('<div class="cn-statusbtn">신청함</div>', unsafe_allow_html=True)
-            elif kind == "ok":
-                if subj in plan_set:
-                    st.markdown('<div class="cn-statusbtn">담음</div>', unsafe_allow_html=True)
-                elif st.button("담기", key=f"cn_add_{typ}_{subj}", use_container_width=True):
-                    st.session_state["cn_plan"].append(
-                        {"subject": subj, "from_major": name, "type": typ})
-                    st.rerun()
-            elif kind == "no":
-                if st.button("대안 보기", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
-                    _alt_dialog(typ, subj)
-            else:
-                st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
-        st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
+                        st.rerun()
+                elif kind == "no":
+                    if st.button("대안 보기", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
+                        _alt_dialog(typ, subj)
+                else:
+                    st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
+            st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="cn-banner">ⓘ 신청 전 담임선생님과 꼭 확인해줘</div>',
                 unsafe_allow_html=True)
