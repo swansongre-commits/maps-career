@@ -81,11 +81,13 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; 
 .cn-summary {{ font-size: 0.92rem; color: {FABRIK['muted']}; margin-bottom: 12px; line-height: 1.7; }}
 .cn-summary b {{ color: {FABRIK['text']}; }}
 .cn-chip-grid div[data-testid="stButton"] > button {{ min-height: 56px; font-size: 0.86rem; }}
-/* 관심 칩 — 좁은 화면에서도 4열 유지가 과하니 2열 그리드로 고정(Streamlit 기본 컬럼 세로쌓임 방지) */
+/* 관심 칩 — PC는 4열 그대로, 모바일(좁은 화면)만 2열로(Streamlit 기본 컬럼 세로쌓임 방지) */
 [class*="cn_chip_grid"] div[data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; gap: 8px; }}
-[class*="cn_chip_grid"] div[data-testid="stColumn"] {{
-    flex: 0 1 calc(50% - 4px) !important;
-    min-width: calc(50% - 4px) !important; width: calc(50% - 4px) !important; }}
+@media (max-width: 640px) {{
+    [class*="cn_chip_grid"] div[data-testid="stColumn"] {{
+        flex: 0 1 calc(50% - 4px) !important;
+        min-width: calc(50% - 4px) !important; width: calc(50% - 4px) !important; }}
+}}
 .cn-badge {{ display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.74rem;
     font-weight: 800; margin-left: 6px; }}
 .cn-badge.ok {{ background: #EFF6FF; color: #1D4ED8; border: 1px solid #93C5FD; }}
