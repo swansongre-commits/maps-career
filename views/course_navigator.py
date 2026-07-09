@@ -101,6 +101,8 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; 
 .cn-pill.yh {{ background: #E5EEFB; color: #2A5DB0; }}
 .cn-row {{ display: flex; align-items: center; gap: 8px; min-height: 38px; }}
 div[data-testid="stCheckbox"] {{ display: flex; justify-content: flex-end; }}
+/* 과목 체크박스 — 기본 크기가 너무 작아 확대(터치하기 쉽게) */
+div[data-testid="stCheckbox"] label {{ transform: scale(1.6); transform-origin: right center; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -180,7 +182,6 @@ def _init_state():
     ss.setdefault("cn_candidates", None)
     ss.setdefault("cn_current_major", None)
     ss.setdefault("cn_plan", [])         # [{subject, from_major}]
-    ss.setdefault("cn_alt_subject", "")
     ss.setdefault("cn_seen_sheet_for", [])
     ss.setdefault("cn_first_visit_modal_shown", False)
     ss.setdefault("cn_history", [])   # 뒤로가기용 방문 이력 스택
@@ -589,11 +590,11 @@ def render_s4():
     ROW_COLS = [0.5, 1.1, 3, 1.7]  # [체크박스 · 구분 · 과목 · 상태/버튼] — 헤더·본문·전체선택 공통
 
     if selectable:
+        # 체크박스 위젯이 인스턴스화된 뒤에는 같은 실행 안에서 그 세션 상태를 직접
+        # 바꿀 수 없다(StreamlitAPIException) — 그래서 버튼 처리 로직을 체크박스보다
+        # 먼저(코드 순서상) 실행해 리셋 후 즉시 rerun한다. 화면상 좌우 배치는 컬럼이
+        # 그대로 지켜준다.
         hc = st.columns(ROW_COLS)
-        with hc[0]:
-            st.checkbox("전체", key=f"cn_selall_{name}", on_change=_toggle_select_all,
-                        label_visibility="collapsed")
-        hc[1].caption(f"{len(selectable)}과목")
         with hc[3]:
             if st.button("체크한 항목 담기", key="cn_add_checked",
                          type="primary", use_container_width=True):
@@ -608,6 +609,10 @@ def render_s4():
                         st.session_state[sel_key(typ, subj)] = False
                     st.session_state[f"cn_selall_{name}"] = False
                     st.rerun()
+        with hc[0]:
+            st.checkbox("전체", key=f"cn_selall_{name}", on_change=_toggle_select_all,
+                        label_visibility="collapsed")
+        hc[1].caption(f"{len(selectable)}과목")
         st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     hcols = st.columns(ROW_COLS)
@@ -641,9 +646,7 @@ def render_s4():
                     st.rerun()
             elif kind == "no":
                 if st.button("대안 보기", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
-                    st.session_state["cn_alt_subject"] = subj
-                    st.session_state["cn_alt_type"] = typ
-                    _go("s6")
+                    _alt_dialog(typ, subj)
             else:
                 st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
         st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
@@ -723,15 +726,11 @@ def render_s5():
 
 
 # ──────────────────────────────────────────────────────────────────
-# S6 — 미개설 대안
+# 미개설 대안 — 팝업(모달)로 표시. 화면 이동 없이 S4 위에 바로 뜬다.
 # ──────────────────────────────────────────────────────────────────
-def render_s6():
-    subj = st.session_state["cn_alt_subject"] or ""
-    typ = st.session_state.get("cn_alt_type", "")
-    if st.button("← 뒤로"):
-        _back()
-    st.markdown(f"### '{_sub_row_html(typ, subj, bullet='')}'이 우리 학교에 없을 때",
-                unsafe_allow_html=True)
+@st.dialog("과목이 우리 학교에 없을 때")
+def _alt_dialog(typ, subj):
+    st.markdown(_sub_row_html(typ, subj, bullet=""), unsafe_allow_html=True)
     st.markdown('<p class="cn-sub">안 열렸다고 길이 닫힌 건 아니야</p>', unsafe_allow_html=True)
 
     st.markdown(
@@ -741,6 +740,8 @@ def render_s6():
     st.markdown(
         '<div class="cn-banner">ⓘ 개설 신청이 많으면 학교가 열기도 해 — '
         '수요조사에 꼭 적어봐</div>', unsafe_allow_html=True)
+    if st.button("닫기", key="cn_alt_close", use_container_width=True):
+        st.rerun()
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -790,6 +791,6 @@ else:
     _init_state()
     STEP_RENDER = {
         "s0": render_s0, "s1": render_s1, "s2": render_s2, "s3": render_s3,
-        "s4": render_s4, "s5": render_s5, "s6": render_s6,
+        "s4": render_s4, "s5": render_s5,
     }
     STEP_RENDER.get(st.session_state["cn_step"], render_s0)()
