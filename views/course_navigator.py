@@ -103,6 +103,15 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; 
 div[data-testid="stCheckbox"] {{ display: flex; justify-content: flex-end; }}
 /* 과목 체크박스 — 기본 크기가 너무 작아 확대(터치하기 쉽게) */
 div[data-testid="stCheckbox"] label {{ transform: scale(1.6); transform-origin: right center; }}
+/* 안내 모달 — 경고·컨펌창처럼 안 보이게 부드럽게. 각진 빨간 테두리·풀폭 검정버튼 지양 */
+div[data-testid="stDialog"] > div {{
+    border-radius: 16px !important; border: none !important;
+    box-shadow: 0 12px 40px rgba(20,20,20,0.12) !important; }}
+div[data-testid="stDialog"] h2, div[data-testid="stDialog"] [data-testid="stMarkdownContainer"] h2 {{
+    font-size: 1.15rem !important; font-weight: 800; }}
+div[data-testid="stDialog"] button[aria-label="Close"] {{
+    border: none !important; background: transparent !important; opacity: .5; }}
+div[data-testid="stDialog"] button[aria-label="Close"]:hover {{ opacity: 1; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -512,20 +521,21 @@ def render_s3():
 # ──────────────────────────────────────────────────────────────────
 # S4 — 우리 학교 개설여부 × 내 이수 현황
 # ──────────────────────────────────────────────────────────────────
+@st.dialog("이걸 알고 이용해주세요")
 def _first_visit_notice():
-    """팝업(모달) 대신 화면 안에 자연스럽게 얹히는 안내 카드 — 경고창처럼 보이지 않게."""
+    """모달이지만 경고·컨펌창처럼 안 보이게 — 부드러운 카피와 얌전한 버튼(CSS는 상단 참고)."""
     st.markdown(
-        '<div class="cn-card">'
-        '<div class="cn-cathead">이걸 알고 이용해주세요</div>'
-        '<p style="font-size:0.88rem;color:#3F3F3F;line-height:1.75;margin:6px 0 10px">'
-        '과목 선택이 합불을 정하지 않아요. 참고만 하고, 진짜 결정은 담임선생님과 함께해줘.<br>'
+        '<p style="font-size:0.9rem;color:#3F3F3F;line-height:1.8;margin:2px 0 12px">'
+        '과목 선택이 합불을 정하지 않아요. 참고만 하고, 진짜 결정은 담임선생님과 함께해줘.<br><br>'
         '<b>이 데이터의 출처</b> — 개설과목은 학교알리미 2025·2026 공시, 권장 선택과목은 '
-        '커리어넷 학과정보 기준이야.<br>'
+        '커리어넷 학과정보 기준이야.<br><br>'
         '실제 지원서를 쓸 땐 꼭 <b>재학 중인 학교</b>와 <b>목표 대학의 모집요강</b>을 확인해줘.'
-        '</p></div>', unsafe_allow_html=True)
-    if st.button("확인했어요", key="cn_ack_notice"):
-        st.session_state["cn_first_visit_modal_shown"] = True
-        st.rerun()
+        '</p>', unsafe_allow_html=True)
+    _, bc = st.columns([3, 1])
+    with bc:
+        if st.button("확인했어요", key="cn_ack_notice"):
+            st.session_state["cn_first_visit_modal_shown"] = True
+            st.rerun()
 
 
 def render_s4():
