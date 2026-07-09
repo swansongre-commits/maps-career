@@ -122,10 +122,13 @@
         <select id="f-gugun" style="margin-top:8px" ${p.sido?"":"disabled"}>
           <option value="">시군구 선택</option>
         </select>
-        <input id="f-school-q" type="text" placeholder="학교 이름 검색" style="margin-top:8px" ${p.gugun?"":"disabled"}>
-        <div id="f-school-list" style="margin-top:8px"></div>
-        <div id="f-school-picked" style="margin-top:8px;font-size:14px;color:var(--accent-2)">
-          ${p.school_name ? `✓ ${p.school_name} 선택됨` : ""}
+        <div id="f-school-picker" style="display:${p.school_id?"none":"block"}">
+          <input id="f-school-q" type="text" placeholder="학교 이름 검색" style="margin-top:8px" ${p.gugun?"":"disabled"}>
+          <div id="f-school-list" style="margin-top:8px"></div>
+        </div>
+        <div id="f-school-picked" style="margin-top:8px;font-size:14px;color:var(--accent-2);display:${p.school_id?"flex":"none"};align-items:center;justify-content:space-between;gap:8px">
+          <span>✓ ${p.school_name} 선택됨</span>
+          <button class="btn-small" id="btn-change-school" type="button">다시 선택</button>
         </div>
 
         <div class="field-label">학년</div>
@@ -169,13 +172,24 @@
           S.profile.school_id = el.dataset.id;
           S.profile.school_name = el.dataset.name;
           saveState();
-          document.getElementById("f-school-picked").innerHTML = `✓ ${el.dataset.name} 선택됨`;
+          showPicked();
           document.getElementById("btn-start").disabled = false;
         };
       });
     }
-    $sido.onchange = () => { S.profile.sido = $sido.value; S.profile.gugun = ""; S.profile.school_id = ""; S.profile.school_name = ""; saveState(); refreshGuguns(); $list.innerHTML=""; };
-    $gugun.onchange = () => { S.profile.gugun = $gugun.value; S.profile.school_id = ""; S.profile.school_name = ""; saveState(); refreshSchools(); };
+    function showPicked() {
+      document.getElementById("f-school-picker").style.display = "none";
+      const $picked = document.getElementById("f-school-picked");
+      $picked.style.display = "flex";
+      $picked.querySelector("span").textContent = `✓ ${S.profile.school_name} 선택됨`;
+    }
+    document.getElementById("btn-change-school").onclick = () => {
+      document.getElementById("f-school-picker").style.display = "block";
+      document.getElementById("f-school-picked").style.display = "none";
+      refreshSchools();
+    };
+    $sido.onchange = () => { S.profile.sido = $sido.value; S.profile.gugun = ""; S.profile.school_id = ""; S.profile.school_name = ""; saveState(); refreshGuguns(); $list.innerHTML=""; document.getElementById("f-school-picker").style.display = "block"; document.getElementById("f-school-picked").style.display = "none"; document.getElementById("btn-start").disabled = true; };
+    $gugun.onchange = () => { S.profile.gugun = $gugun.value; S.profile.school_id = ""; S.profile.school_name = ""; saveState(); refreshSchools(); document.getElementById("f-school-picker").style.display = "block"; document.getElementById("f-school-picked").style.display = "none"; document.getElementById("btn-start").disabled = true; };
     $q.oninput = debounce(refreshSchools, 250);
     document.getElementById("f-grade").querySelectorAll("button").forEach(b => {
       b.onclick = () => {
@@ -191,7 +205,7 @@
     document.getElementById("btn-start").onclick = () => go("s1");
 
     if (p.sido) await refreshGuguns();
-    if (p.gugun) await refreshSchools();
+    if (p.gugun && !p.school_id) await refreshSchools();
   }
 
   function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
