@@ -622,7 +622,9 @@ def render_s4():
     st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     for typ, subj, kind in rows:
-        bullet = "⬜" if kind == "no" else "❓" if kind == "q" else "•"
+        # 이모지 불릿(⬜/❓)은 폰트에 따라 색 있는 네모로 깨져 보이는 경우가 있어
+        # 전부 같은 텍스트 불릿으로 통일 — 상태는 오른쪽 버튼 문구로 충분히 구분됨.
+        bullet = "•"
         cols = st.columns(ROW_COLS)
         with cols[0]:
             if kind == "ok" and subj not in plan_set:
