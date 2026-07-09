@@ -6,6 +6,12 @@
       "runtimeExecutable": "uvicorn",
       "runtimeArgs": ["webapp.main:app", "--host", "0.0.0.0", "--port", "8420"],
       "port": 8420
+    },
+    {
+      "name": "streamlit",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "app.py", "--server.port", "8501", "--server.headless", "true"],
+      "port": 8501
     }
   ]
 }
