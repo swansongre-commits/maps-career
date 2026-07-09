@@ -464,7 +464,9 @@ def render_s3():
         st.markdown("#### 확인 전에 하나만!")
         st.caption("이 중에 벌써 듣고 있는 게 있어? (없으면 건너뛰어도 돼)")
         st.markdown(
-            '<div class="cn-banner">1학년 공통과목(국어·수학·통합과학 등)은 체크 안 해도 돼</div>',
+            '<div class="cn-banner">1학년 공통과목(국어·수학·통합과학 등)은 체크 안 해도 돼<br>'
+            '<b>들었어</b> = 이미 끝난 과목 · <b>신청해뒀어</b> = 다음 학기 신청만 해둔 것'
+            '(아직 바꿀 수 있어, 나중에 다시 물어볼게)</div>',
             unsafe_allow_html=True)
         for typ, s in all_subs:
             cur = _taken_status(s)
