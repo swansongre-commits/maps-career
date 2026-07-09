@@ -690,23 +690,25 @@ def render_s5():
         '달라 — 그래서 담임쌤과 상의가 필요해</div>', unsafe_allow_html=True)
 
     plan = st.session_state["cn_plan"]
-    if not plan:
-        st.info("아직 담은 게 없어.")
+    taken = st.session_state["cn_taken"]
+
+    if not plan and not taken:
+        st.info("아직 담거나 체크한 게 없어.")
         if st.button("추천으로 돌아갈래?"):
             _go("s2")
         return
 
-    st.markdown("**상의할 과목**")
-    for i, item in enumerate(list(plan)):
-        cols = st.columns([4, 1])
-        tag = " 📝" if _taken_status(item["subject"]) == "신청함" else ""
-        cols[0].markdown(_sub_row_html(item.get("type", ""), item["subject"]) + tag,
-                          unsafe_allow_html=True)
-        if cols[1].button("빼기", key=f"cn_rm_{i}"):
-            plan.pop(i)
-            st.rerun()
+    if plan:
+        st.markdown("**상의할 과목**")
+        for i, item in enumerate(list(plan)):
+            cols = st.columns([4, 1])
+            tag = " 📝" if _taken_status(item["subject"]) == "신청함" else ""
+            cols[0].markdown(_sub_row_html(item.get("type", ""), item["subject"]) + tag,
+                              unsafe_allow_html=True)
+            if cols[1].button("빼기", key=f"cn_rm_{i}"):
+                plan.pop(i)
+                st.rerun()
 
-    taken = st.session_state["cn_taken"]
     if taken:
         st.markdown("**이미 듣고 있거나 신청한 과목**")
         for t in taken:
@@ -714,9 +716,10 @@ def render_s5():
             st.markdown(mark + " " + _sub_row_html(t.get("type", ""), t["subject"]),
                         unsafe_allow_html=True)
 
-    majors = sorted({item["from_major"] for item in plan})
-    st.markdown(f'<div class="cn-sub">이 목록이 이어주는 진로: <b>{" · ".join(majors)}</b></div>',
-                unsafe_allow_html=True)
+    if plan:
+        majors = sorted({item["from_major"] for item in plan})
+        st.markdown(f'<div class="cn-sub">이 목록이 이어주는 진로: <b>{" · ".join(majors)}</b></div>',
+                    unsafe_allow_html=True)
 
     if st.button("공유 링크 만들기", type="primary", use_container_width=True):
         st.query_params["share"] = _encode_share()
