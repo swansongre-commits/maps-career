@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""M.A.P.S 과목선택 내비게이터 (자체 서비스 프로토타입) — Streamlit 재구현.
+"""M.A.P.S 고교학점제 과목선택 네비게이터 (자체 서비스 프로토타입) — Streamlit 재구현.
 
 설계 문서: MAPS_자체서비스_화면설계_v1.md(v1.1, 상급자 리뷰 반영).
 디자인: 기존 M.A.P.S(views/highschool.py) FABRIK 팔레트 그대로 계승
@@ -259,7 +259,7 @@ def _plan_subjects():
 # S0 — 학교·학년
 # ──────────────────────────────────────────────────────────────────
 def render_s0():
-    st.markdown("## 과목선택 내비게이터")
+    st.markdown("## 고교학점제 과목선택 네비게이터")
     st.markdown('<p class="cn-sub">네 학교에서 실제로 신청할 수 있는 과목으로 알려줄게</p>',
                 unsafe_allow_html=True)
 
