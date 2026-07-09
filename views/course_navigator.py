@@ -629,12 +629,9 @@ def render_s4():
             if kind == "done":
                 st.markdown('<div class="cn-statusbtn">하는 중</div>', unsafe_allow_html=True)
             elif kind == "applied":
-                if st.button("신청해뒀네 →", key=f"cn_appl_{typ}_{subj}", use_container_width=True):
-                    if subj not in plan_set:
-                        st.session_state["cn_plan"].append(
-                            {"subject": subj, "from_major": name, "type": typ})
-                    st.toast("목록에 담아뒀어. 마음이 바뀌면 목록에서 뺄 수 있어.")
-                    st.rerun()
+                # 신청함 상태는 이미 S5 '이미 듣고 있거나 신청한 과목'에서 taken 목록으로
+                # 보여주므로 여기서 별도로 담을 필요가 없다 — 하는 중과 같은 비활성 표시로 통일.
+                st.markdown('<div class="cn-statusbtn">신청함</div>', unsafe_allow_html=True)
             elif kind == "ok":
                 if subj in plan_set:
                     st.markdown('<div class="cn-statusbtn">담음</div>', unsafe_allow_html=True)
