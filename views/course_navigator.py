@@ -155,10 +155,22 @@ def _init_state():
     ss.setdefault("cn_alt_subject", "")
     ss.setdefault("cn_seen_sheet_for", [])
     ss.setdefault("cn_first_visit_modal_shown", False)
+    ss.setdefault("cn_history", [])   # 뒤로가기용 방문 이력 스택
 
 
 def _go(step):
+    """다음 화면으로 이동 — 현재 화면을 이력 스택에 쌓는다(뒤로가기가 실제 방문 순서를 따라가도록)."""
+    cur = st.session_state["cn_step"]
+    if cur != step:
+        st.session_state["cn_history"].append(cur)
     st.session_state["cn_step"] = step
+    st.rerun()
+
+
+def _back():
+    """뒤로가기 — 이력 스택에서 바로 직전 화면으로. 스택이 비었으면 처음 화면으로."""
+    hist = st.session_state["cn_history"]
+    st.session_state["cn_step"] = hist.pop() if hist else "s0"
     st.rerun()
 
 
@@ -169,7 +181,14 @@ def _taken_status(subject):
     return None
 
 
-def _set_taken(subject, status):
+def _taken_type(subject):
+    for t in st.session_state["cn_taken"]:
+        if t["subject"] == subject:
+            return t.get("type", "")
+    return ""
+
+
+def _set_taken(subject, status, typ=""):
     taken = st.session_state["cn_taken"]
     for t in taken:
         if t["subject"] == subject:
@@ -177,8 +196,14 @@ def _set_taken(subject, status):
                 taken.remove(t)
             else:
                 t["status"] = status
+                t["type"] = typ or t.get("type", "")
             return
-    taken.append({"subject": subject, "status": status})
+    taken.append({"subject": subject, "status": status, "type": typ})
+
+
+def _sub_label(typ, subject):
+    """과목명 목록에 유형(일반/진로/융합) 접두를 붙인 표시용 라벨."""
+    return f"{typ} · {subject}" if typ else subject
 
 
 def _plan_subjects():
@@ -241,7 +266,7 @@ def render_s0():
 def render_s1():
     p = st.session_state["cn_profile"]
     if st.button("← 뒤로"):
-        _go("s0")
+        _back()
     st.caption(f'{p["school_name"]} · {p["grade"]}')
     st.markdown("### 요즘 뭐가 제일 끌려?")
     st.markdown('<p class="cn-sub">한 마디면 충분해</p>', unsafe_allow_html=True)
@@ -308,7 +333,7 @@ def render_s2():
         _go("s1")
         return
     if st.button("← 뒤로"):
-        _go("s1")
+        _back()
     st.markdown("### 이런 갈래로 이어져")
 
     if c["empty"]:
@@ -329,7 +354,7 @@ def render_s2():
                     + (f'<div class="summary">{m["summary"]}</div>' if m["summary"] else "")
                     + f'<div class="reason">근거: {m["reason"]}</div></div>',
                     unsafe_allow_html=True)
-                if st.button(f"{m['name']} 선택", key=f"cn_pick_{m['name']}",
+                if st.button(f"{m['name']} 선택", key=f"cn_pick_{cat['dae']}_{m['name']}",
                              use_container_width=True):
                     st.session_state["cn_current_major"] = m["name"]
                     _go("s3")
@@ -348,14 +373,16 @@ def render_s3():
         _go("s2")
         return
     if st.button("← 뒤로"):
-        _go("s2")
+        _back()
     st.markdown(f"### {name}")
     st.markdown("2·3학년 때 이런 과목이 도움 돼")
     st.caption("커리어넷 학과정보 기준")
 
     rec = R.major_by_name(name)
     subjects = R.subjects_of_major(rec)
-    all_subs = [s for typ in ("일반", "진로", "융합") for s in subjects.get(typ, [])]
+    # (유형, 과목) 쌍으로 유지 — 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장하는
+    # 학과가 실제로 있어(예: 컴퓨터시스템과의 '인공지능 수학'), 위젯 key에 유형을 반드시 섞는다.
+    all_subs = [(typ, s) for typ in ("일반", "진로", "융합") for s in subjects.get(typ, [])]
 
     for typ in ("일반", "진로", "융합"):
         subs = subjects.get(typ, [])
@@ -369,14 +396,28 @@ def render_s3():
                 badge = ' <span class="cn-badge done">✓ 하는 중</span>'
             elif st_status == "신청함":
                 badge = ' <span class="cn-badge applied">📝 신청함</span>'
-            with st.expander(s + ("" if not badge else "  " + ("✓" if st_status == "이수함" else "📝")),
-                              expanded=False):
+            with st.expander(_sub_label(typ, s) + ("" if not badge else "  " + ("✓" if st_status == "이수함" else "📝")),
+                              expanded=False, key=f"cn_exp_{typ}_{s}"):
                 ach = R.achievements_for_subject(s)
-                if ach and ach.get("items"):
-                    for it in ach["items"][:3]:
-                        st.markdown(f"- \"{it['text']}\"")
-                else:
+                items = ach.get("items") if ach else []
+                if not items:
                     st.caption("성취기준 정보가 아직 없어.")
+                else:
+                    show_all_key = f"cn_ach_all_{typ}_{s}"
+                    show_all = st.session_state.get(show_all_key, False)
+                    shown = items if show_all else items[:3]
+                    for it in shown:
+                        st.markdown(f"- \"{it['text']}\"")
+                    if len(items) > 3:
+                        if show_all:
+                            if st.button("접기", key=f"cn_ach_less_{typ}_{s}"):
+                                st.session_state[show_all_key] = False
+                                st.rerun()
+                        else:
+                            if st.button(f"성취기준 전체보기 ({len(items)}개)",
+                                         key=f"cn_ach_more_{typ}_{s}"):
+                                st.session_state[show_all_key] = True
+                                st.rerun()
 
     extra = R.major_extra(rec)
     univ = extra.get("설치대학", {})
@@ -397,17 +438,17 @@ def render_s3():
         st.markdown(
             '<div class="cn-banner">1학년 공통과목(국어·수학·통합과학 등)은 체크 안 해도 돼</div>',
             unsafe_allow_html=True)
-        for s in all_subs:
+        for typ, s in all_subs:
             cur = _taken_status(s)
             cols = st.columns([3, 1, 1])
-            cols[0].markdown(s)
-            if cols[1].button("들었어", key=f"cn_take_{s}",
+            cols[0].markdown(_sub_label(typ, s))
+            if cols[1].button("들었어", key=f"cn_take_{typ}_{s}",
                                type="primary" if cur == "이수함" else "secondary"):
-                _set_taken(s, "이수함")
+                _set_taken(s, "이수함", typ)
                 st.rerun()
-            if cols[2].button("신청해뒀어", key=f"cn_apply_{s}",
+            if cols[2].button("신청해뒀어", key=f"cn_apply_{typ}_{s}",
                                type="primary" if cur == "신청함" else "secondary"):
-                _set_taken(s, "신청함")
+                _set_taken(s, "신청함", typ)
                 st.rerun()
         c1, c2 = st.columns(2)
         if c1.button("건너뛰기", use_container_width=True):
@@ -437,7 +478,7 @@ def render_s4():
     name = st.session_state["cn_current_major"]
     p = st.session_state["cn_profile"]
     if st.button("← 뒤로"):
-        _go("s3")
+        _back()
 
     if not st.session_state["cn_first_visit_modal_shown"]:
         _first_visit_modal()
@@ -465,7 +506,7 @@ def render_s4():
                 kind = "ok"; c_can += 1
             else:
                 kind = "no"; c_no += 1
-            rows.append((subj, kind))
+            rows.append((typ, subj, kind))
 
     st.markdown(
         f'<div class="cn-summary"><b>{name}</b> 권장 {len(rows)}과목 중<br>'
@@ -477,28 +518,47 @@ def render_s4():
         st.markdown('<div class="cn-banner warn">이 학교 과목 정보가 아직 없어 — '
                     '담임선생님께 확인해줘.</div>', unsafe_allow_html=True)
 
-    for subj, kind in rows:
+    # 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장할 수 있어(예: '인공지능 수학')
+    # 과목명 기준으로 한 번만 담되, 처음 만난 유형을 표시용으로 남긴다.
+    seen_subj = set()
+    not_in_plan = []
+    for typ, subj, kind in rows:
+        if kind == "ok" and subj not in plan_set and subj not in seen_subj:
+            seen_subj.add(subj)
+            not_in_plan.append((typ, subj))
+    if not_in_plan:
+        if st.button(f"담을 수 있는 {len(not_in_plan)}과목 전체 담기",
+                     key="cn_add_all", use_container_width=True):
+            for typ, subj in not_in_plan:
+                st.session_state["cn_plan"].append(
+                    {"subject": subj, "from_major": name, "type": typ})
+            st.rerun()
+
+    for typ, subj, kind in rows:
         icon = "⬜" if kind == "no" else "❓" if kind == "q" else "✅"
         cols = st.columns([3, 1.4])
-        cols[0].markdown(f"{icon} {subj}")
+        cols[0].markdown(f"{icon} {_sub_label(typ, subj)}")
         with cols[1]:
             if kind == "done":
                 st.markdown('<span class="cn-badge done">✓ 하는 중</span>', unsafe_allow_html=True)
             elif kind == "applied":
-                if st.button("신청해뒀네 →", key=f"cn_appl_{subj}", use_container_width=True):
+                if st.button("신청해뒀네 →", key=f"cn_appl_{typ}_{subj}", use_container_width=True):
                     if subj not in plan_set:
-                        st.session_state["cn_plan"].append({"subject": subj, "from_major": name})
+                        st.session_state["cn_plan"].append(
+                            {"subject": subj, "from_major": name, "type": typ})
                     st.toast("목록에 담아뒀어. 마음이 바뀌면 목록에서 뺄 수 있어.")
                     st.rerun()
             elif kind == "ok":
                 if subj in plan_set:
                     st.markdown('<span class="cn-badge done">담음</span>', unsafe_allow_html=True)
-                elif st.button("목록에 담기", key=f"cn_add_{subj}", use_container_width=True):
-                    st.session_state["cn_plan"].append({"subject": subj, "from_major": name})
+                elif st.button("목록에 담기", key=f"cn_add_{typ}_{subj}", use_container_width=True):
+                    st.session_state["cn_plan"].append(
+                        {"subject": subj, "from_major": name, "type": typ})
                     st.rerun()
             elif kind == "no":
-                if st.button("대안 보기 →", key=f"cn_alt_{subj}", use_container_width=True):
+                if st.button("대안 보기 →", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
                     st.session_state["cn_alt_subject"] = subj
+                    st.session_state["cn_alt_type"] = typ
                     _go("s6")
             else:
                 st.markdown('<span class="cn-badge q">담임 확인</span>', unsafe_allow_html=True)
@@ -535,7 +595,7 @@ def _decode_share(token):
 def render_s5():
     p = st.session_state["cn_profile"]
     if st.button("← 뒤로"):
-        _go("s4")
+        _back()
     st.markdown("### 담임쌤과 상의할 목록")
     st.markdown(
         '<div class="cn-banner">실제 개설 학년·학기와 신청 가능 개수는 학교 편제표에 따라 '
@@ -552,16 +612,17 @@ def render_s5():
     for i, item in enumerate(list(plan)):
         cols = st.columns([4, 1])
         tag = " 📝" if _taken_status(item["subject"]) == "신청함" else ""
-        cols[0].markdown(f"- {item['subject']}{tag}")
+        cols[0].markdown(f"- {_sub_label(item.get('type', ''), item['subject'])}{tag}")
         if cols[1].button("빼기", key=f"cn_rm_{i}"):
             plan.pop(i)
             st.rerun()
 
-    done_taken = [t for t in st.session_state["cn_taken"] if t["status"] == "이수함"]
-    if done_taken:
-        st.markdown("**이미 하고 있는 과목**")
-        for t in done_taken:
-            st.markdown(f"- ✓ {t['subject']}")
+    taken = st.session_state["cn_taken"]
+    if taken:
+        st.markdown("**이미 듣고 있거나 신청한 과목**")
+        for t in taken:
+            mark = "✓" if t["status"] == "이수함" else "📝"
+            st.markdown(f"- {mark} {_sub_label(t.get('type', ''), t['subject'])}")
 
     majors = sorted({item["from_major"] for item in plan})
     st.markdown(f'<div class="cn-sub">이 목록이 이어주는 진로: <b>{" · ".join(majors)}</b></div>',
@@ -579,9 +640,10 @@ def render_s5():
 # ──────────────────────────────────────────────────────────────────
 def render_s6():
     subj = st.session_state["cn_alt_subject"] or ""
+    typ = st.session_state.get("cn_alt_type", "")
     if st.button("← 뒤로"):
-        _go("s4")
-    st.markdown(f"### '{subj}'이 우리 학교에 없을 때")
+        _back()
+    st.markdown(f"### '{_sub_label(typ, subj)}'이 우리 학교에 없을 때")
     st.markdown('<p class="cn-sub">안 열렸다고 길이 닫힌 건 아니야</p>', unsafe_allow_html=True)
 
     st.markdown(
@@ -607,7 +669,7 @@ def render_s7_read(data):
     plan = data.get("plan", [])
     if plan:
         for item in plan:
-            st.markdown(f"- {item['subject']}")
+            st.markdown(f"- {_sub_label(item.get('type', ''), item['subject'])}")
     else:
         st.caption("아직 없음")
 
@@ -616,7 +678,7 @@ def render_s7_read(data):
     if taken:
         for t in taken:
             mark = "✓" if t["status"] == "이수함" else "📝"
-            st.markdown(f"- {mark} {t['subject']}")
+            st.markdown(f"- {mark} {_sub_label(t.get('type', ''), t['subject'])}")
     else:
         st.caption("아직 없음")
 
