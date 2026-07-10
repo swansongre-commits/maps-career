@@ -677,6 +677,52 @@ def link_pairs(top_majors, top_jobs, top_k=9):
     return pairs[:top_k]
 
 
+# ── 대학별 권장과목(대교협 2028) — build_univ_recommend.py 산출물 ──
+#    47개 대학이 공식 발표한 모집단위별 핵심·권장과목. "필수 이수 기준이 아닌
+#    참고자료"(대교협 명시) — 호출부는 반드시 이 단서를 병기할 것.
+def _load_univ_recommend():
+    p = _path("univ_recommend_2028.json")
+    if not os.path.exists(p):
+        return {}
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+UNIV_RECOMMEND = _load_univ_recommend()
+
+
+def univ_recommend_for(name):
+    """학과명 → 대교협 2028 대학별 핵심·권장과목(매칭 실패 시 None).
+
+    반환: {"n_univs": 대학 수,
+           "agg": {과목명: {"core": 핵심 지정 대학수, "rec": 권장 지정 대학수}},
+           "entries": [{univ, unit, core[], core_raw, rec[], rec_raw, ...}]}
+    (핵심=필수적 이수 권장, 권장=이수 권장 — 대교협 정의)"""
+    if not UNIV_RECOMMEND:
+        return None
+    idxs = UNIV_RECOMMEND.get("by_major", {}).get(norm_major(name))
+    if not idxs:
+        return None
+    seen, entries = set(), []
+    for i in idxs:
+        e = UNIV_RECOMMEND["entries"][i]
+        k = (e["univ"], e["unit"], e["core_raw"], e["rec_raw"])
+        if k in seen:
+            continue
+        seen.add(k)
+        entries.append(e)
+    agg = {}
+    for e in entries:
+        for s in e["core"]:
+            agg.setdefault(s, {"core": 0, "rec": 0})["core"] += 1
+        for s in e["rec"]:
+            agg.setdefault(s, {"core": 0, "rec": 0})["rec"] += 1
+    return {"n_univs": len({e["univ"] for e in entries}),
+            "entries": entries, "agg": agg}
+
+
 # ──────────────────────────────────────────────────────────────────
 # 부가정보 조인
 # ──────────────────────────────────────────────────────────────────

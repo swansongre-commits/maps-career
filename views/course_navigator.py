@@ -475,6 +475,43 @@ def render_s3():
                                          key=f"cn_ach_more_{typ}_{s}"):
                                 st.session_state[show_all_key] = True
                                 st.rerun()
+                # 역방향 분기: 이 과목이 함께 이어주는 다른 학과들 (JTBD-2 reality-check)
+                rel = [m["name"] for m in R.majors_for_subject(s) if m["name"] != name]
+                if rel:
+                    more = f" 외 {len(rel) - 5}개" if len(rel) > 5 else ""
+                    st.caption(f"🔗 이 과목은 {name} 말고도 {len(rel)}개 학과가 함께 권장해요 — "
+                               f"{' · '.join(rel[:5])}{more}. 여러 갈래를 같이 살려주는 과목이에요.")
+
+    # ── 대학이 실제로 보는 과목 (대교협 2028 공식 발표) — 차별 정보 층 ──
+    ur = R.univ_recommend_for(name)
+    if ur:
+        st.markdown("#### 대학이 실제로 보는 과목")
+        st.caption(f"2028학년도 대입 기준 — {ur['n_univs']}개 대학이 이 계열의 핵심·권장과목을 공식 발표했어요")
+        top = sorted(ur["agg"].items(), key=lambda x: (-x[1]["core"], -x[1]["rec"]))[:8]
+        for s, c in top:
+            parts = []
+            if c["core"]:
+                parts.append(f"**핵심** 지정 {c['core']}개 대학")
+            if c["rec"]:
+                parts.append(f"권장 지정 {c['rec']}개 대학")
+            st.markdown(f"- **{s}** — {' · '.join(parts)}")
+        with st.expander("대학별로 자세히 보기"):
+            for e in ur["entries"]:
+                unit_label = f" {e['unit']}" if e["unit"] else ""
+                lines = []
+                if e["core"]:
+                    lines.append("핵심: " + ", ".join(e["core"]))
+                elif e["core_raw"]:
+                    lines.append("핵심: " + e["core_raw"])
+                if e["rec"]:
+                    lines.append("권장: " + ", ".join(e["rec"]))
+                elif e["rec_raw"]:
+                    lines.append("권장: " + e["rec_raw"])
+                st.markdown(f"- **{e['univ']}**{unit_label} — {' / '.join(lines)}")
+        st.markdown(
+            '<div class="cn-banner">ⓘ 지원자격이 아닌 <b>참고자료</b>예요(대교협, 2025-09-30 대학 발표 정리). '
+            '학교에 개설되지 않아 못 들은 과목은 대학이 다르게 평가해요 — '
+            '실제 기준은 꼭 각 대학 모집요강에서 확인해주세요.</div>', unsafe_allow_html=True)
 
     extra = R.major_extra(rec)
     univ = extra.get("설치대학", {})
