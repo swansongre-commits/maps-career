@@ -122,6 +122,8 @@ table.cn-univtb th, table.cn-univtb td {{
     text-align: left; vertical-align: top; background: #FFFFFF; }}
 table.cn-univtb th {{ background: {FABRIK['surface_soft']}; font-weight: 700; white-space: nowrap; }}
 table.cn-univtb td.rg {{ white-space: nowrap; font-weight: 700; width: 72px; }}
+table.cn-univtb tr.hi td {{ background: #FFF8EC; }}
+table.cn-univtb tr.hi td.rg {{ color: #8A6320; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -286,15 +288,18 @@ def _univ_table_html(uinfo):
             + "".join(rows) + "</table>")
 
 
-def _ach_dist_table_html(dist):
-    """학교 성취도 분포(achievement_dist 반환값) → 표 HTML.
-    (과목 공시명 | 학년·학기 | 평균 | A~E). 결측은 '-'"""
+def _ach_dist_table_html(dist, hi_bases=None):
+    """학교 성취도 분포 → 표 HTML. (과목 공시명 | 학년·학기 | 평균 | A~E). 결측은 '-'.
+    hi_bases: 이 학과 추천과목의 subj_base 집합 — 해당 행에 ★ 표시·강조."""
     def fmt(v):
         return "-" if v is None else f"{v:g}"
+    hi_bases = hi_bases or set()
     rows = []
     for r in dist:
+        star = "★ " if r.get("subj_base") in hi_bases else ""
+        cls = ' class="hi"' if star else ""
         rows.append(
-            f'<tr><td class="rg">{r["subject_name"]}</td>'
+            f'<tr{cls}><td class="rg">{star}{r["subject_name"]}</td>'
             f'<td>{r["grade"]}학년 {r["semester"]}학기</td>'
             f'<td>{fmt(r["average"])}</td>'
             + "".join(f'<td>{fmt(r[k])}</td>' for k in
@@ -507,6 +512,20 @@ def render_s3():
     # 학과가 실제로 있어(예: 컴퓨터시스템과의 '인공지능 수학'), 위젯 key에 유형을 반드시 섞는다.
     all_subs = [(typ, s) for typ in ("일반", "진로", "융합") for s in subjects.get(typ, [])]
 
+    # 우리 학교 개설여부를 과목별로 미리 조회(학교 선택된 경우)
+    p = st.session_state["cn_profile"]
+    offered_set = set()
+    have_school = False
+    if p.get("school_id"):
+        av = R.subject_availability(rec, p["school_id"])
+        have_school = av["have_school"]
+        for _typ in ("일반", "진로", "융합"):
+            for it in av["by_type"].get(_typ, []):
+                if it["offered"]:
+                    offered_set.add(it["subject"])
+
+    st.caption("과목명을 누르면 배우는 내용(성취기준)과 연계 학과가 열려요")
+    ROW3 = [1.1, 3.2, 1.4]  # [유형 필 · 과목명 · 개설여부]
     for typ in ("일반", "진로", "융합"):
         subs = subjects.get(typ, [])
         if not subs:
@@ -514,13 +533,28 @@ def render_s3():
         st.markdown(f"**{typ}선택**")
         for s in subs:
             st_status = _taken_status(s)
-            badge = ""
-            if st_status == "이수함":
-                badge = ' <span class="cn-badge done">✓ 하는 중</span>'
-            elif st_status == "신청함":
-                badge = ' <span class="cn-badge applied">📝 신청함</span>'
-            with st.expander(_sub_label(typ, s) + ("" if not badge else "  " + ("✓" if st_status == "이수함" else "📝")),
-                              expanded=False, key=f"cn_exp_{typ}_{s}"):
+            cols = st.columns(ROW3, vertical_alignment="center")
+            with cols[0]:
+                st.markdown(_pill_html(typ), unsafe_allow_html=True)
+            # 과목명 = 상세 토글 버튼(라벨은 텍스트만 가능해 불릿+과목명)
+            open_key = f"cn_s3open_{typ}_{s}"
+            is_open = st.session_state.get(open_key, False)
+            arrow = "▾" if is_open else "▸"
+            if cols[1].button(f"{arrow} {s}", key=f"cn_s3btn_{typ}_{s}"):
+                st.session_state[open_key] = not is_open
+                st.rerun()
+            with cols[2]:
+                if not p.get("school_id"):
+                    st.markdown('<div class="cn-statusbtn" style="font-size:0.8rem">학교 미선택</div>',
+                                unsafe_allow_html=True)
+                elif not have_school:
+                    st.markdown('<span class="cn-badge q">확인 필요</span>', unsafe_allow_html=True)
+                elif s in offered_set:
+                    st.markdown('<span class="cn-badge ok">우리 학교 개설</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<span class="cn-badge q">미개설</span>', unsafe_allow_html=True)
+
+            if st.session_state.get(open_key, False):
                 ach = R.achievements_for_subject(s)
                 items = ach.get("items") if ach else []
                 if not items:
@@ -549,6 +583,7 @@ def render_s3():
                     st.markdown(_related_major_univ_table_html(rel[:5]), unsafe_allow_html=True)
                     if len(rel) > 5:
                         st.caption(f"외 {len(rel) - 5}개 학과")
+            st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     # ── 대학이 실제로 보는 과목 (대교협 2028 공식 발표) — 차별 정보 층 ──
     ur = R.univ_recommend_for(name)
@@ -691,6 +726,19 @@ def render_s4():
         st.markdown('<div class="cn-banner warn">이 학교 과목 정보가 아직 없어요 — '
                     '담임 선생님께 확인해주세요.</div>', unsafe_allow_html=True)
 
+    # ── 우리 학교 전체 과목 성취표(추천과목 ★ 강조) — 학교 단위 정보 ──
+    ach_all = R.achievement_all(p["school_id"]) if p.get("school_id") else []
+    if ach_all:
+        rec_bases = {R.subj_base(subj) for _t, subj, _k in rows}
+        n_hi = sum(1 for r in ach_all if r.get("subj_base") in rec_bases)
+        with st.expander(f"우리 학교 전체 과목 성취표 보기 "
+                          f"({ach_all[0]['academic_year']}학년도 · {len(ach_all)}과목)"):
+            st.caption(f"★ 표시 = 이 학과가 추천하는 과목 계열({n_hi}개). "
+                       "학교알리미 2026년 1차 공시 · 참고용이에요 "
+                       "(과목명이 이전 교육과정 기준일 수 있어요)")
+            st.markdown(_ach_dist_table_html(ach_all, hi_bases=rec_bases),
+                        unsafe_allow_html=True)
+
     # 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장할 수 있어(예: '인공지능 수학')
     # 과목명 기준으로 한 번만 담되, 처음 만난 유형을 표시용으로 남긴다.
     seen_subj = set()
@@ -772,23 +820,6 @@ def render_s4():
                 else:
                     st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
             st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
-
-    # 우리 학교 성취도 분포 — 학교 단위 정보라 S4(우리 학교 화면)에서 통합 표로 제공
-    if avail["have_school"]:
-        dist_all, seen_rows = [], set()
-        for typ2, subj2, _k in rows:
-            for r in R.achievement_dist(p["school_id"], subj2):
-                rk = (r["subject_name"], r["academic_year"], r["grade"], r["semester"])
-                if rk in seen_rows:
-                    continue  # 계열 매칭이라 미적분Ⅰ·Ⅱ 등에서 같은 행이 중복 조회될 수 있음
-                seen_rows.add(rk)
-                dist_all.append(r)
-        if dist_all:
-            dist_all.sort(key=lambda r: (r["grade"], r["semester"], r["subject_name"]))
-            with st.expander(f"우리 학교 성취도 분포 보기 ({dist_all[0]['academic_year']}학년도 실적)"):
-                st.markdown(_ach_dist_table_html(dist_all), unsafe_allow_html=True)
-                st.caption("이 학과 권장과목 계열의 우리 학교 실적 — 학교알리미 2026년 1차 공시 · "
-                           "참고용이에요. 과목명이 이전 교육과정(현 2·3학년 기준)일 수 있어요")
 
     st.markdown('<div class="cn-banner">ⓘ 신청 전 담임 선생님과 꼭 확인해주세요</div>',
                 unsafe_allow_html=True)

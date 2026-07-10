@@ -689,6 +689,11 @@ def _subj_base(name):
     return _ACH_TAIL.sub("", _norm_subject(str(name)))
 
 
+def subj_base(name):
+    """과목명 → 계열 베이스(꼬리 로마숫자·숫자 제거) 공개 래퍼. 성취표 하이라이트 매칭용."""
+    return _subj_base(name)
+
+
 def achievement_dist(shl_idf_cd, subject_name, latest_only=True):
     """학교×과목(계열) → 성취도 분포 행 목록(없으면 []).
 
@@ -717,6 +722,38 @@ def achievement_dist(shl_idf_cd, subject_name, latest_only=True):
         top_year = out[0]["academic_year"]
         out = [r for r in out if r["academic_year"] == top_year]
     return out
+
+
+def achievement_all(shl_idf_cd, latest_only=True):
+    """학교의 모든 과목 성취도 분포(가장 최근 학년도). 각 행에 subj_base 포함.
+    반환: [{subject_name, subj_base, academic_year, grade, semester, units,
+            average, a_pct~e_pct}] — 학년·학기·과목명 순 정렬."""
+    if not shl_idf_cd or not os.path.exists(_ACH_DB_PATH):
+        return []
+    import sqlite3
+    con = sqlite3.connect("file:%s?mode=ro" % _ACH_DB_PATH, uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(
+            "SELECT subject_name, subj_base, academic_year, grade, semester, units, "
+            "average, a_pct, b_pct, c_pct, d_pct, e_pct FROM school_achievement "
+            "WHERE shl_idf_cd=? ORDER BY academic_year DESC, grade, semester, subject_name",
+            (shl_idf_cd,)).fetchall()
+    finally:
+        con.close()
+    out = [dict(r) for r in rows]
+    if latest_only and out:
+        top_year = max(r["academic_year"] for r in out)
+        out = [r for r in out if r["academic_year"] == top_year]
+    # 같은 과목이 계열 중복 없이 한 번씩만
+    seen, uniq = set(), []
+    for r in out:
+        k = (r["subject_name"], r["grade"], r["semester"])
+        if k in seen:
+            continue
+        seen.add(k)
+        uniq.append(r)
+    return uniq
 
 
 # ── 대학별 권장과목(대교협 2028) — build_univ_recommend.py 산출물 ──
