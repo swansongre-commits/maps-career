@@ -55,3 +55,7 @@ gpt.txt
 datacrawling/raw/
 datacrawling/major_info.csv
 datacrawling/job_info.csv
+
+# 학교알리미 성취도 수집 원천(77MB+학교별 파일) - 산출물 achievement.db만 커밋, 재현은 build_achievement_db.py
+achievement_data/
+crawl_achievement.py

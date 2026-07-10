@@ -677,6 +677,48 @@ def link_pairs(top_majors, top_jobs, top_k=9):
     return pairs[:top_k]
 
 
+# ── 학교별 과목 성취도 분포(학교알리미) — build_achievement_db.py 산출물 ──
+#    achievement.db: 학교×과목×학기 평균·A~E 분포(2026년 1차 공시, 2025학년도 실적).
+#    subj_base(꼬리 로마숫자 제거)로 2022개정↔2015개정 계열을 함께 조회하되,
+#    표시는 공시 과목명 그대로 — 호출부는 '참고용·공시 기준' 병기할 것.
+_ACH_DB_PATH = _path("achievement.db")
+_ACH_TAIL = re.compile(r"[IVX0-9]+$")
+
+
+def _subj_base(name):
+    return _ACH_TAIL.sub("", _norm_subject(str(name)))
+
+
+def achievement_dist(shl_idf_cd, subject_name, latest_only=True):
+    """학교×과목(계열) → 성취도 분포 행 목록(없으면 []).
+
+    반환: [{subject_name, academic_year, grade, semester, units,
+            average, a_pct, b_pct, c_pct, d_pct, e_pct}]
+    latest_only=True면 해당 계열 데이터가 있는 가장 최근 학년도만."""
+    if not shl_idf_cd or not os.path.exists(_ACH_DB_PATH):
+        return []
+    import sqlite3
+    base = _subj_base(subject_name)
+    if not base:
+        return []
+    con = sqlite3.connect("file:%s?mode=ro" % _ACH_DB_PATH, uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(
+            "SELECT subject_name, academic_year, grade, semester, units, average, "
+            "a_pct, b_pct, c_pct, d_pct, e_pct FROM school_achievement "
+            "WHERE shl_idf_cd=? AND subj_base=? "
+            "ORDER BY academic_year DESC, grade, semester, subject_name",
+            (shl_idf_cd, base)).fetchall()
+    finally:
+        con.close()
+    out = [dict(r) for r in rows]
+    if latest_only and out:
+        top_year = out[0]["academic_year"]
+        out = [r for r in out if r["academic_year"] == top_year]
+    return out
+
+
 # ── 대학별 권장과목(대교협 2028) — build_univ_recommend.py 산출물 ──
 #    47개 대학이 공식 발표한 모집단위별 핵심·권장과목. "필수 이수 기준이 아닌
 #    참고자료"(대교협 명시) — 호출부는 반드시 이 단서를 병기할 것.

@@ -286,6 +286,27 @@ def _univ_table_html(uinfo):
             + "".join(rows) + "</table>")
 
 
+def _ach_dist_table_html(dist):
+    """학교 성취도 분포(achievement_dist 반환값) → 표 HTML.
+    (과목 공시명 | 학년·학기 | 평균 | A~E). 결측은 '-'"""
+    def fmt(v):
+        return "-" if v is None else f"{v:g}"
+    rows = []
+    for r in dist:
+        rows.append(
+            f'<tr><td class="rg">{r["subject_name"]}</td>'
+            f'<td>{r["grade"]}학년 {r["semester"]}학기</td>'
+            f'<td>{fmt(r["average"])}</td>'
+            + "".join(f'<td>{fmt(r[k])}</td>' for k in
+                      ("a_pct", "b_pct", "c_pct", "d_pct", "e_pct"))
+            + "</tr>")
+    if not rows:
+        return ""
+    return ('<table class="cn-univtb"><tr><th>과목</th><th>학년·학기</th>'
+            '<th>평균</th><th>A%</th><th>B%</th><th>C%</th><th>D%</th><th>E%</th></tr>'
+            + "".join(rows) + "</table>")
+
+
 def _related_major_univ_table_html(major_names_list):
     """연계 학과 목록 → [학과 | 설치대학 요약] 표 HTML (과목 상세용)."""
     rows = []
@@ -520,6 +541,16 @@ def render_s3():
                                          key=f"cn_ach_more_{typ}_{s}"):
                                 st.session_state[show_all_key] = True
                                 st.rerun()
+                # 우리 학교 최근 성취도 분포 (학교알리미 공시) — 학교가 선택된 경우만
+                _p = st.session_state["cn_profile"]
+                dist = (R.achievement_dist(_p["school_id"], s)
+                        if _p.get("school_id") else [])
+                if dist:
+                    st.markdown(f"**우리 학교 최근 성취도 분포** "
+                                f"({dist[0]['academic_year']}학년도 실적)")
+                    st.markdown(_ach_dist_table_html(dist), unsafe_allow_html=True)
+                    st.caption("학교알리미 2026년 1차 공시 · 참고용 — 과목명이 이전 교육과정"
+                               "(현 2·3학년 기준)일 수 있어요")
                 # 역방향 분기: 이 과목이 함께 이어주는 다른 학과들 + 각 학과 설치대학 (JTBD-2)
                 rel = [m["name"] for m in R.majors_for_subject(s) if m["name"] != name]
                 if rel:
