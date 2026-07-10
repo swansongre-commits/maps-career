@@ -115,6 +115,13 @@ div[data-testid="stDialog"] button[aria-label="Close"]:hover {{ opacity: 1; }}
 /* S4 표 — 체크박스·필·과목명·버튼 높이가 서로 달라 위쪽 기준으로 삐뚤빼뚤해 보이던 것을
    각 행의 아래쪽 기준으로 맞춘다 */
 [class*="cn_s4_table"] div[data-testid="stHorizontalBlock"] {{ align-items: flex-end; }}
+/* 설치대학 표 — highschool.py univ-tb 톤 계승(1px 라인·흰 셀·지역 굵게) */
+table.cn-univtb {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 4px 0 10px; }}
+table.cn-univtb th, table.cn-univtb td {{
+    border: 1px solid {FABRIK['border']}; padding: 5px 10px;
+    text-align: left; vertical-align: top; background: #FFFFFF; }}
+table.cn-univtb th {{ background: {FABRIK['surface_soft']}; font-weight: 700; white-space: nowrap; }}
+table.cn-univtb td.rg {{ white-space: nowrap; font-weight: 700; width: 72px; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -267,6 +274,38 @@ def _plan_subjects():
     return {p["subject"] for p in st.session_state["cn_plan"]}
 
 
+def _univ_table_html(uinfo):
+    """설치대학 정보(universities_for 반환값) → 지역별 표 HTML."""
+    rows = []
+    for region in sorted(uinfo.get("by_region", {})):
+        names = ", ".join(u["대학명"] for u in uinfo["by_region"][region])
+        rows.append(f'<tr><td class="rg">{region}</td><td>{names}</td></tr>')
+    if not rows:
+        return ""
+    return ('<table class="cn-univtb"><tr><th>지역</th><th>대학명</th></tr>'
+            + "".join(rows) + "</table>")
+
+
+def _related_major_univ_table_html(major_names_list):
+    """연계 학과 목록 → [학과 | 설치대학 요약] 표 HTML (과목 상세용)."""
+    rows = []
+    for rm in major_names_list:
+        ui = R.universities_for(rm)
+        flat = [u["대학명"] for reg in sorted(ui.get("by_region", {}))
+                for u in ui["by_region"][reg]]
+        if flat:
+            head = ", ".join(flat[:4])
+            more = f" 외 {len(flat) - 4}곳" if len(flat) > 4 else ""
+            cell = f"{len(flat)}곳 — {head}{more}"
+        else:
+            cell = "정보 없음"
+        rows.append(f'<tr><td class="rg">{rm}</td><td>{cell}</td></tr>')
+    if not rows:
+        return ""
+    return ('<table class="cn-univtb"><tr><th>연계 학과</th><th>설치대학</th></tr>'
+            + "".join(rows) + "</table>")
+
+
 # ──────────────────────────────────────────────────────────────────
 # S0 — 학교·학년
 # ──────────────────────────────────────────────────────────────────
@@ -411,6 +450,12 @@ def render_s2():
                     + (f'<div class="summary">{m["summary"]}</div>' if m["summary"] else "")
                     + f'<div class="reason">근거: {m["reason"]}</div></div>',
                     unsafe_allow_html=True)
+                uinfo = R.universities_for(m["name"])
+                if uinfo.get("univ_count"):
+                    with st.expander(f"선발대학 보기 ({uinfo['univ_count']}곳)",
+                                      key=f"cn_univ_{cat['dae']}_{m['name']}"):
+                        st.markdown(_univ_table_html(uinfo), unsafe_allow_html=True)
+                        st.caption("4년제 모집단위 기준 — 실제 모집 여부는 각 대학 모집요강을 확인해주세요")
                 if st.button(f"{m['name']} 선택", key=f"cn_pick_{cat['dae']}_{m['name']}",
                              use_container_width=True):
                     st.session_state["cn_current_major"] = m["name"]
@@ -475,12 +520,14 @@ def render_s3():
                                          key=f"cn_ach_more_{typ}_{s}"):
                                 st.session_state[show_all_key] = True
                                 st.rerun()
-                # 역방향 분기: 이 과목이 함께 이어주는 다른 학과들 (JTBD-2 reality-check)
+                # 역방향 분기: 이 과목이 함께 이어주는 다른 학과들 + 각 학과 설치대학 (JTBD-2)
                 rel = [m["name"] for m in R.majors_for_subject(s) if m["name"] != name]
                 if rel:
-                    more = f" 외 {len(rel) - 5}개" if len(rel) > 5 else ""
                     st.caption(f"🔗 이 과목은 {name} 말고도 {len(rel)}개 학과가 함께 권장해요 — "
-                               f"{' · '.join(rel[:5])}{more}. 여러 갈래를 같이 살려주는 과목이에요.")
+                               "여러 갈래를 같이 살려주는 과목이에요.")
+                    st.markdown(_related_major_univ_table_html(rel[:5]), unsafe_allow_html=True)
+                    if len(rel) > 5:
+                        st.caption(f"외 {len(rel) - 5}개 학과")
 
     # ── 대학이 실제로 보는 과목 (대교협 2028 공식 발표) — 차별 정보 층 ──
     ur = R.univ_recommend_for(name)
@@ -515,12 +562,13 @@ def render_s3():
 
     extra = R.major_extra(rec)
     univ = extra.get("설치대학", {})
-    with st.expander("설치대학 더 보기"):
-        by_region = univ.get("by_region", {})
-        if by_region:
-            for region, unis in by_region.items():
-                names = ", ".join(u["대학명"] for u in unis[:8])
-                st.markdown(f"- **{region}**: {names}")
+    label = (f"설치대학 더 보기 ({univ['univ_count']}곳)"
+             if univ.get("univ_count") else "설치대학 더 보기")
+    with st.expander(label):
+        table = _univ_table_html(univ)
+        if table:
+            st.markdown(table, unsafe_allow_html=True)
+            st.caption("4년제 모집단위 기준 — 실제 모집 여부는 각 대학 모집요강을 확인해주세요")
         else:
             st.caption("설치대학 정보가 아직 없어요.")
 
