@@ -541,16 +541,6 @@ def render_s3():
                                          key=f"cn_ach_more_{typ}_{s}"):
                                 st.session_state[show_all_key] = True
                                 st.rerun()
-                # 우리 학교 최근 성취도 분포 (학교알리미 공시) — 학교가 선택된 경우만
-                _p = st.session_state["cn_profile"]
-                dist = (R.achievement_dist(_p["school_id"], s)
-                        if _p.get("school_id") else [])
-                if dist:
-                    st.markdown(f"**우리 학교 최근 성취도 분포** "
-                                f"({dist[0]['academic_year']}학년도 실적)")
-                    st.markdown(_ach_dist_table_html(dist), unsafe_allow_html=True)
-                    st.caption("학교알리미 2026년 1차 공시 · 참고용 — 과목명이 이전 교육과정"
-                               "(현 2·3학년 기준)일 수 있어요")
                 # 역방향 분기: 이 과목이 함께 이어주는 다른 학과들 + 각 학과 설치대학 (JTBD-2)
                 rel = [m["name"] for m in R.majors_for_subject(s) if m["name"] != name]
                 if rel:
@@ -782,6 +772,23 @@ def render_s4():
                 else:
                     st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
             st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
+
+    # 우리 학교 성취도 분포 — 학교 단위 정보라 S4(우리 학교 화면)에서 통합 표로 제공
+    if avail["have_school"]:
+        dist_all, seen_rows = [], set()
+        for typ2, subj2, _k in rows:
+            for r in R.achievement_dist(p["school_id"], subj2):
+                rk = (r["subject_name"], r["academic_year"], r["grade"], r["semester"])
+                if rk in seen_rows:
+                    continue  # 계열 매칭이라 미적분Ⅰ·Ⅱ 등에서 같은 행이 중복 조회될 수 있음
+                seen_rows.add(rk)
+                dist_all.append(r)
+        if dist_all:
+            dist_all.sort(key=lambda r: (r["grade"], r["semester"], r["subject_name"]))
+            with st.expander(f"우리 학교 성취도 분포 보기 ({dist_all[0]['academic_year']}학년도 실적)"):
+                st.markdown(_ach_dist_table_html(dist_all), unsafe_allow_html=True)
+                st.caption("이 학과 권장과목 계열의 우리 학교 실적 — 학교알리미 2026년 1차 공시 · "
+                           "참고용이에요. 과목명이 이전 교육과정(현 2·3학년 기준)일 수 있어요")
 
     st.markdown('<div class="cn-banner">ⓘ 신청 전 담임 선생님과 꼭 확인해주세요</div>',
                 unsafe_allow_html=True)
