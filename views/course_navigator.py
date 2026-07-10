@@ -203,7 +203,6 @@ def _init_state():
     ss.setdefault("cn_candidates", None)
     ss.setdefault("cn_current_major", None)
     ss.setdefault("cn_plan", [])         # [{subject, from_major}]
-    ss.setdefault("cn_seen_sheet_for", [])
     ss.setdefault("cn_first_visit_modal_shown", False)
     ss.setdefault("cn_history", [])   # 뒤로가기용 방문 이력 스택
 
@@ -508,9 +507,8 @@ def render_s3():
 
     rec = R.major_by_name(name)
     subjects = R.subjects_of_major(rec)
-    # (유형, 과목) 쌍으로 유지 — 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장하는
-    # 학과가 실제로 있어(예: 컴퓨터시스템과의 '인공지능 수학'), 위젯 key에 유형을 반드시 섞는다.
-    all_subs = [(typ, s) for typ in ("일반", "진로", "융합") for s in subjects.get(typ, [])]
+    # 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장하는 학과가 실제로 있어
+    # (예: 컴퓨터시스템과의 '인공지능 수학') 위젯 key에 유형을 반드시 섞는다.
 
     # 우리 학교 개설여부를 과목별로 미리 조회(학교 선택된 경우)
     p = st.session_state["cn_profile"]
@@ -536,11 +534,12 @@ def render_s3():
             cols = st.columns(ROW3, vertical_alignment="center")
             with cols[0]:
                 st.markdown(_pill_html(typ), unsafe_allow_html=True)
-            # 과목명 = 상세 토글 버튼(라벨은 텍스트만 가능해 불릿+과목명)
+            # 과목명 = 상세 토글 버튼(라벨은 텍스트만 가능해 불릿+과목명). 이수 상태는 마크로.
+            mark = " ✓" if st_status == "이수함" else " 📝" if st_status == "신청함" else ""
             open_key = f"cn_s3open_{typ}_{s}"
             is_open = st.session_state.get(open_key, False)
             arrow = "▾" if is_open else "▸"
-            if cols[1].button(f"{arrow} {s}", key=f"cn_s3btn_{typ}_{s}"):
+            if cols[1].button(f"{arrow} {s}{mark}", key=f"cn_s3btn_{typ}_{s}"):
                 st.session_state[open_key] = not is_open
                 st.rerun()
             with cols[2]:
@@ -583,6 +582,17 @@ def render_s3():
                     st.markdown(_related_major_univ_table_html(rel[:5]), unsafe_allow_html=True)
                     if len(rel) > 5:
                         st.caption(f"외 {len(rel) - 5}개 학과")
+                # 이수 상태 입력(기존 별도 이수체크 시트를 이 자리로 머지)
+                st.caption("이미 듣고 있거나 신청한 과목이면 표시해두세요")
+                bc = st.columns([1, 1, 2])
+                if bc[0].button("들었어요", key=f"cn_take_{typ}_{s}",
+                                type="primary" if st_status == "이수함" else "secondary"):
+                    _set_taken(s, "이수함", typ)
+                    st.rerun()
+                if bc[1].button("신청해뒀어요", key=f"cn_apply_{typ}_{s}",
+                                type="primary" if st_status == "신청함" else "secondary"):
+                    _set_taken(s, "신청함", typ)
+                    st.rerun()
             st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     # ── 대학이 실제로 보는 과목 (대교협 2028 공식 발표) — 차별 정보 층 ──
@@ -629,37 +639,10 @@ def render_s3():
             st.caption("설치대학 정보가 아직 없어요.")
 
     st.divider()
-    seen = name in st.session_state["cn_seen_sheet_for"]
-    if not seen:
-        st.markdown("#### 확인 전에 하나만요!")
-        st.caption("이 중에 벌써 듣고 있는 과목이 있으신가요? (없으면 건너뛰어도 괜찮아요)")
-        st.markdown(
-            '<div class="cn-banner">1학년 공통과목(국어·수학·통합과학 등)은 체크하지 않아도 돼요<br>'
-            '<b>들었어요</b> = 이미 끝난 과목 · <b>신청해뒀어요</b> = 다음 학기 신청만 해둔 것'
-            '(아직 바꿀 수 있어요, 나중에 다시 여쭤볼게요)</div>',
-            unsafe_allow_html=True)
-        for typ, s in all_subs:
-            cur = _taken_status(s)
-            cols = st.columns([3, 1, 1])
-            cols[0].markdown(_sub_row_html(typ, s), unsafe_allow_html=True)
-            if cols[1].button("들었어요", key=f"cn_take_{typ}_{s}",
-                               type="primary" if cur == "이수함" else "secondary"):
-                _set_taken(s, "이수함", typ)
-                st.rerun()
-            if cols[2].button("신청해뒀어요", key=f"cn_apply_{typ}_{s}",
-                               type="primary" if cur == "신청함" else "secondary"):
-                _set_taken(s, "신청함", typ)
-                st.rerun()
-        c1, c2 = st.columns(2)
-        if c1.button("건너뛰기", use_container_width=True):
-            st.session_state["cn_seen_sheet_for"].append(name)
-            _go("s4")
-        if c2.button("확인하러 가기", type="primary", use_container_width=True):
-            st.session_state["cn_seen_sheet_for"].append(name)
-            _go("s4")
-    else:
-        if st.button("우리 학교에 있는지 확인 →", type="primary", use_container_width=True):
-            _go("s4")
+    st.caption("이미 듣고 있거나 신청한 과목은 위 과목을 펼쳐서 표시해두면, "
+               "우리 학교 현황에서 함께 정리돼요")
+    if st.button("우리 학교에 있는지 확인하러 가기 →", type="primary", use_container_width=True):
+        _go("s4")
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -731,13 +714,28 @@ def render_s4():
     if ach_all:
         rec_bases = {R.subj_base(subj) for _t, subj, _k in rows}
         n_hi = sum(1 for r in ach_all if r.get("subj_base") in rec_bases)
-        with st.expander(f"우리 학교 전체 과목 성취표 보기 "
-                          f"({ach_all[0]['academic_year']}학년도 · {len(ach_all)}과목)"):
-            st.caption(f"★ 표시 = 이 학과가 추천하는 과목 계열({n_hi}개). "
-                       "학교알리미 2026년 1차 공시 · 참고용이에요 "
-                       "(과목명이 이전 교육과정 기준일 수 있어요)")
-            st.markdown(_ach_dist_table_html(ach_all, hi_bases=rec_bases),
-                        unsafe_allow_html=True)
+        # 추천과목 계열(★)을 먼저 오도록 정렬 — 상위 5개 우선 노출용
+        ach_sorted = sorted(
+            ach_all, key=lambda r: (0 if r.get("subj_base") in rec_bases else 1,
+                                    r["grade"], r["semester"], r["subject_name"]))
+        st.markdown(f"**우리 학교 과목 성취표** "
+                    f"({ach_all[0]['academic_year']}학년도 · {len(ach_all)}과목)")
+        st.caption(f"★ = 이 학과가 추천하는 과목 계열({n_hi}개). "
+                   "학교알리미 2026년 1차 공시 · 참고용이에요 "
+                   "(과목명이 이전 교육과정 기준일 수 있어요)")
+        show_all_ach = st.session_state.get("cn_ach_all_s4", False)
+        shown = ach_sorted if show_all_ach else ach_sorted[:5]
+        st.markdown(_ach_dist_table_html(shown, hi_bases=rec_bases),
+                    unsafe_allow_html=True)
+        if len(ach_sorted) > 5:
+            if show_all_ach:
+                if st.button("접기", key="cn_ach_less_s4"):
+                    st.session_state["cn_ach_all_s4"] = False
+                    st.rerun()
+            else:
+                if st.button(f"더보기 (나머지 {len(ach_sorted) - 5}과목)", key="cn_ach_more_s4"):
+                    st.session_state["cn_ach_all_s4"] = True
+                    st.rerun()
 
     # 같은 과목명이 일반/진로 등 유형에 걸쳐 중복 등장할 수 있어(예: '인공지능 수학')
     # 과목명 기준으로 한 번만 담되, 처음 만난 유형을 표시용으로 남긴다.
