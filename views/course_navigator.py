@@ -60,10 +60,6 @@ div[data-testid="stButton"] > button:hover {{ border-color: {FABRIK['cta']}; bac
 div[data-testid="stButton"] > button[kind="primary"] {{
     background: {FABRIK['cta']}; color: #fff; border-color: {FABRIK['cta']}; }}
 div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; }}
-/* 담기/담음/하는 중/확인 필요 — 실제 버튼과 똑같은 모양으로 통일. 클릭 불가 상태만 흐리게 */
-.cn-statusbtn {{ display: block; width: 100%; box-sizing: border-box; text-align: center;
-    padding: 0.5rem 0.85rem; border-radius: 8px; border: 1px solid {FABRIK['border']};
-    font-weight: 700; font-size: 0.95rem; background: #FAFAFA; color: {FABRIK['soft']}; }}
 .cn-row-line {{ border-bottom: 1px solid {FABRIK['border']}; margin: 2px 0 8px; }}
 .cn-sub {{ color: {FABRIK['muted']}; font-size: 0.92rem; margin: -0.3rem 0 1rem; }}
 .cn-banner {{ background: #FFFFFF; border: 1px solid {FABRIK['border']};
@@ -75,8 +71,10 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; 
 .cn-major {{ background: {FABRIK['surface_soft']}; border-radius: 8px; padding: 10px 12px;
     margin-bottom: 8px; }}
 .cn-major .name {{ font-weight: 800; font-size: 1.0rem; }}
-.cn-major .summary {{ color: {FABRIK['muted']}; font-size: 0.86rem; margin: 4px 0; }}
-.cn-major .reason {{ color: #1D4ED8; font-size: 0.82rem; }}
+.cn-major .summary {{ color: {FABRIK['muted']}; font-size: 0.86rem; margin: 4px 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }}
+.cn-major .reason {{ color: {FABRIK['ink_mid']}; font-size: 0.82rem; font-weight: 700; }}
+.cn-major-univ {{ color: {FABRIK['soft']}; font-size: 0.8rem; margin-top: 4px; }}
 .cn-cathead {{ font-weight: 800; font-size: 1.02rem; margin-bottom: 8px; }}
 .cn-summary {{ font-size: 0.92rem; color: {FABRIK['muted']}; margin-bottom: 12px; line-height: 1.7; }}
 .cn-summary b {{ color: {FABRIK['text']}; }}
@@ -89,16 +87,22 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; 
         min-width: calc(50% - 4px) !important; width: calc(50% - 4px) !important; }}
 }}
 .cn-badge {{ display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.74rem;
-    font-weight: 800; margin-left: 6px; }}
-.cn-badge.ok {{ background: #EFF6FF; color: #1D4ED8; border: 1px solid #93C5FD; }}
-.cn-badge.done {{ background: #E9F7EF; color: #1E7A46; border: 1px solid #A3E0BE; }}
-.cn-badge.applied {{ background: #FFF3D6; color: #8A6320; border: 1px solid #E9C77E; }}
-.cn-badge.q {{ background: {FABRIK['surface_soft']}; color: {FABRIK['muted']}; border: 1px solid {FABRIK['border']}; }}
+    font-weight: 800; }}
+/* 개설=잉크 채움(FABRIK 강조=잉크 반전) · 미개설=점선 외곽 · 확인필요=회색 물음 */
+.cn-badge.ok {{ background: {FABRIK['cta']}; color: #FFFFFF; border: 1px solid {FABRIK['cta']}; }}
+.cn-badge.done {{ background: {FABRIK['surface_soft']}; color: {FABRIK['ink_mid']}; border: 1px solid {FABRIK['line_strong']}; }}
+.cn-badge.applied {{ background: {FABRIK['surface_soft']}; color: {FABRIK['ink_mid']}; border: 1px dashed {FABRIK['line_strong']}; }}
+.cn-badge.no {{ background: #FFFFFF; color: {FABRIK['muted']}; border: 1px dashed {FABRIK['line_strong']}; }}
+.cn-badge.q {{ background: {FABRIK['surface_soft']}; color: {FABRIK['soft']}; border: 1px solid {FABRIK['border']}; }}
+/* 유형 pill — 무채색 베이스에서 튀지 않게 채도 하향(파스텔) */
 .cn-pill {{ display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.76rem;
     font-weight: 800; white-space: nowrap; }}
-.cn-pill.il {{ background: #FCE7E9; color: #B23A48; }}
-.cn-pill.jr {{ background: #E3F5E9; color: #1F8A54; }}
-.cn-pill.yh {{ background: #E5EEFB; color: #2A5DB0; }}
+.cn-pill.il {{ background: #FBEEEF; color: #A65460; }}
+.cn-pill.jr {{ background: #EBF4EE; color: #4A7E5E; }}
+.cn-pill.yh {{ background: #EDF1F8; color: #5470A0; }}
+/* 과목 상세 '＋보기' 아이콘 버튼 — 작고 가볍게 */
+[class*="cn_s3see"] div[data-testid="stButton"] > button {{
+    padding: 0.25rem 0; min-height: 32px; font-weight: 700; }}
 .cn-row {{ display: flex; align-items: center; gap: 8px; min-height: 38px; }}
 div[data-testid="stCheckbox"] {{ display: flex; justify-content: flex-end; }}
 /* 과목 체크박스 — 기본 크기가 너무 작아 확대(터치하기 쉽게) */
@@ -124,6 +128,9 @@ table.cn-univtb th {{ background: {FABRIK['surface_soft']}; font-weight: 700; wh
 table.cn-univtb td.rg {{ white-space: nowrap; font-weight: 700; width: 72px; }}
 table.cn-univtb tr.hi td {{ background: #FFF8EC; }}
 table.cn-univtb tr.hi td.rg {{ color: #8A6320; }}
+/* 넓은 표(성취표 8열 등) 모바일 가로 스크롤 — 페이지 자체는 안 밀리게 */
+.cn-scroll {{ overflow-x: auto; -webkit-overflow-scrolling: touch; }}
+.cn-scroll table.cn-univtb {{ min-width: 520px; }}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -358,7 +365,8 @@ def render_s0():
         o = schools[labels.index(pick)]
         p["sido"], p["gugun"] = sido, gugun
         p["school_id"], p["school_name"] = o["shl_idf_cd"], o["school"]
-        st.success(f"✓ {o['school']} 선택됨")
+        st.markdown(f'<div class="cn-banner">✓ <b>{o["school"]}</b> 선택됨</div>',
+                    unsafe_allow_html=True)
     else:
         p["school_id"], p["school_name"] = "", ""
 
@@ -367,6 +375,7 @@ def render_s0():
                       horizontal=True, label_visibility="collapsed")
     p["grade"] = grade
     if grade == "고1":
+        st.markdown("**학기**")
         sem = st.radio("학기", ["1학기", "2학기"], key="cn_sem_radio",
                         horizontal=True, label_visibility="collapsed")
         p["semester"] = 1 if sem == "1학기" else 2
@@ -396,8 +405,9 @@ def render_s1():
                                placeholder="예: 동물 돌보는 일이 좋아요",
                                label_visibility="collapsed")
 
-    st.markdown("아니면 골라보세요 (2~3개)")
     chips = st.session_state["cn_interests"]["chips"]
+    st.markdown(f"아니면 골라보세요 <span style='color:#6B6B6B'>(선택 {len(chips)}/3)</span>",
+                unsafe_allow_html=True)
     with st.container(key="cn_chip_grid"):
         for row_start in range(0, len(CHIPS), 4):
             cols = st.columns(4)
@@ -411,6 +421,8 @@ def render_s1():
                             chips.remove(label)
                         elif len(chips) < 3:
                             chips.append(label)
+                        else:
+                            st.toast("최대 3개까지 고를 수 있어요")
                         st.rerun()
 
     if st.button("말한 걸로 찾기", type="primary", use_container_width=True):
@@ -470,19 +482,19 @@ def render_s2():
             st.markdown(f'<div class="cn-card"><div class="cn-cathead">'
                         f'{cat["emoji"]} {cat["dae"]}</div>', unsafe_allow_html=True)
             for m in cat["majors"]:
+                uinfo = R.universities_for(m["name"])
+                nu = uinfo.get("univ_count") or 0
+                univ_line = (f'<div class="cn-major-univ">전국 {nu}개 대학에 있어요</div>'
+                             if nu else "")
                 st.markdown(
                     f'<div class="cn-major"><div class="name">{m["name"]}</div>'
                     + (f'<div class="summary">{m["summary"]}</div>' if m["summary"] else "")
-                    + f'<div class="reason">근거: {m["reason"]}</div></div>',
+                    + f'<div class="reason">근거: {m["reason"]}</div>'
+                    + univ_line + '</div>',
                     unsafe_allow_html=True)
-                uinfo = R.universities_for(m["name"])
-                if uinfo.get("univ_count"):
-                    with st.expander(f"선발대학 보기 ({uinfo['univ_count']}곳)",
-                                      key=f"cn_univ_{cat['dae']}_{m['name']}"):
-                        st.markdown(_univ_table_html(uinfo), unsafe_allow_html=True)
-                        st.caption("4년제 모집단위 기준 — 실제 모집 여부는 각 대학 모집요강을 확인해주세요")
-                if st.button(f"{m['name']} 선택", key=f"cn_pick_{cat['dae']}_{m['name']}",
-                             use_container_width=True):
+                if st.button(f"{m['name']} 자세히 보기 →",
+                             key=f"cn_pick_{cat['dae']}_{m['name']}",
+                             type="primary", use_container_width=True):
                     st.session_state["cn_current_major"] = m["name"]
                     _go("s3")
             st.markdown("</div>", unsafe_allow_html=True)
@@ -522,8 +534,9 @@ def render_s3():
                 if it["offered"]:
                     offered_set.add(it["subject"])
 
-    st.caption("과목명을 누르면 배우는 내용(성취기준)과 연계 학과가 열려요")
-    ROW3 = [1.1, 3.2, 1.4]  # [유형 필 · 과목명 · 개설여부]
+    st.caption("오른쪽 **＋보기**를 누르면 배우는 내용과 연계 학과가 열려요")
+    # [유형 pill · 과목명(텍스트)+이수마크 · 개설여부 · ＋보기 버튼]
+    ROW3 = [0.85, 2.7, 1.35, 0.75]
     for typ in ("일반", "진로", "융합"):
         subs = subjects.get(typ, [])
         if not subs:
@@ -532,26 +545,31 @@ def render_s3():
         for s in subs:
             st_status = _taken_status(s)
             cols = st.columns(ROW3, vertical_alignment="center")
-            with cols[0]:
-                st.markdown(_pill_html(typ), unsafe_allow_html=True)
-            # 과목명 = 상세 토글 버튼(라벨은 텍스트만 가능해 불릿+과목명). 이수 상태는 마크로.
-            mark = " ✓" if st_status == "이수함" else " 📝" if st_status == "신청함" else ""
-            open_key = f"cn_s3open_{typ}_{s}"
-            is_open = st.session_state.get(open_key, False)
-            arrow = "▾" if is_open else "▸"
-            if cols[1].button(f"{arrow} {s}{mark}", key=f"cn_s3btn_{typ}_{s}"):
-                st.session_state[open_key] = not is_open
-                st.rerun()
+            cols[0].markdown(_pill_html(typ), unsafe_allow_html=True)
+            # 과목명은 클릭 대상 아닌 텍스트. 이수 상태는 통일 뱃지(✓ 이수 / 📝 신청)로.
+            mark = ""
+            if st_status == "이수함":
+                mark = ' <span class="cn-badge done">✓ 이수</span>'
+            elif st_status == "신청함":
+                mark = ' <span class="cn-badge applied">📝 신청</span>'
+            cols[1].markdown(f'<div style="font-size:0.95rem">{s}{mark}</div>',
+                             unsafe_allow_html=True)
             with cols[2]:
                 if not p.get("school_id"):
-                    st.markdown('<div class="cn-statusbtn" style="font-size:0.8rem">학교 미선택</div>',
-                                unsafe_allow_html=True)
+                    st.markdown('<span class="cn-badge q">학교 미선택</span>', unsafe_allow_html=True)
                 elif not have_school:
                     st.markdown('<span class="cn-badge q">확인 필요</span>', unsafe_allow_html=True)
                 elif s in offered_set:
-                    st.markdown('<span class="cn-badge ok">우리 학교 개설</span>', unsafe_allow_html=True)
+                    st.markdown('<span class="cn-badge ok">개설</span>', unsafe_allow_html=True)
                 else:
-                    st.markdown('<span class="cn-badge q">미개설</span>', unsafe_allow_html=True)
+                    st.markdown('<span class="cn-badge no">미개설</span>', unsafe_allow_html=True)
+            open_key = f"cn_s3open_{typ}_{s}"
+            is_open = st.session_state.get(open_key, False)
+            with cols[3]:
+                with st.container(key=f"cn_s3see_{typ}_{s}"):
+                    if st.button("－닫기" if is_open else "＋보기", key=f"cn_s3btn_{typ}_{s}"):
+                        st.session_state[open_key] = not is_open
+                        st.rerun()
 
             if st.session_state.get(open_key, False):
                 ach = R.achievements_for_subject(s)
@@ -561,54 +579,57 @@ def render_s3():
                 else:
                     show_all_key = f"cn_ach_all_{typ}_{s}"
                     show_all = st.session_state.get(show_all_key, False)
-                    shown = items if show_all else items[:3]
+                    shown = items if show_all else items[:2]   # 미리보기 2줄로 축약
+                    st.caption("이 과목에서 배우는 것")
                     for it in shown:
                         st.markdown(f"- \"{it['text']}\"")
-                    if len(items) > 3:
+                    if len(items) > 2:
                         if show_all:
                             if st.button("접기", key=f"cn_ach_less_{typ}_{s}"):
                                 st.session_state[show_all_key] = False
                                 st.rerun()
                         else:
-                            if st.button(f"성취기준 전체보기 ({len(items)}개)",
+                            if st.button(f"더보기 ({len(items) - 2}개)",
                                          key=f"cn_ach_more_{typ}_{s}"):
                                 st.session_state[show_all_key] = True
                                 st.rerun()
-                # 역방향 분기: 이 과목이 함께 이어주는 다른 학과들 + 각 학과 설치대학 (JTBD-2)
+                # 역방향 분기: 연계 학과는 캡션+접힘으로만(표 상시 노출 제거)
                 rel = [m["name"] for m in R.majors_for_subject(s) if m["name"] != name]
                 if rel:
-                    st.caption(f"🔗 이 과목은 {name} 말고도 {len(rel)}개 학과가 함께 권장해요 — "
-                               "여러 갈래를 같이 살려주는 과목이에요.")
-                    st.markdown(_related_major_univ_table_html(rel[:5]), unsafe_allow_html=True)
-                    if len(rel) > 5:
-                        st.caption(f"외 {len(rel) - 5}개 학과")
-                # 이수 상태 입력(기존 별도 이수체크 시트를 이 자리로 머지)
-                st.caption("이미 듣고 있거나 신청한 과목이면 표시해두세요")
-                bc = st.columns([1, 1, 2])
-                if bc[0].button("들었어요", key=f"cn_take_{typ}_{s}",
-                                type="primary" if st_status == "이수함" else "secondary"):
+                    with st.expander(f"🔗 이 과목을 함께 권장하는 학과 {len(rel)}곳"):
+                        st.markdown(_related_major_univ_table_html(rel[:5]),
+                                    unsafe_allow_html=True)
+                        if len(rel) > 5:
+                            st.caption(f"외 {len(rel) - 5}개 학과")
+                # 이수 상태 입력 — 토글형(이미 표시된 상태면 primary)
+                ic = st.columns(2)
+                if ic[0].button("✓ 들었어요", key=f"cn_take_{typ}_{s}",
+                                type="primary" if st_status == "이수함" else "secondary",
+                                use_container_width=True):
                     _set_taken(s, "이수함", typ)
                     st.rerun()
-                if bc[1].button("신청해뒀어요", key=f"cn_apply_{typ}_{s}",
-                                type="primary" if st_status == "신청함" else "secondary"):
+                if ic[1].button("📝 신청해뒀어요", key=f"cn_apply_{typ}_{s}",
+                                type="primary" if st_status == "신청함" else "secondary",
+                                use_container_width=True):
                     _set_taken(s, "신청함", typ)
                     st.rerun()
             st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
-    # ── 대학이 실제로 보는 과목 (대교협 2028 공식 발표) — 차별 정보 층 ──
+    # ── 대학이 실제로 보는 과목 (대교협 2028 공식 발표) — 상위 4개 + 더보기로 축약 ──
     ur = R.univ_recommend_for(name)
     if ur:
         st.markdown("#### 대학이 실제로 보는 과목")
-        st.caption(f"2028학년도 대입 기준 — {ur['n_univs']}개 대학이 이 계열의 핵심·권장과목을 공식 발표했어요")
-        top = sorted(ur["agg"].items(), key=lambda x: (-x[1]["core"], -x[1]["rec"]))[:8]
-        for s, c in top:
+        st.caption(f"2028 대입 기준 · {ur['n_univs']}개 대학이 이 계열의 핵심·권장과목을 공식 발표했어요 "
+                   "(지원자격 아닌 참고자료)")
+        top = sorted(ur["agg"].items(), key=lambda x: (-x[1]["core"], -x[1]["rec"]))
+        for s, c in top[:4]:
             parts = []
             if c["core"]:
-                parts.append(f"**핵심** 지정 {c['core']}개 대학")
+                parts.append(f"**핵심** {c['core']}개 대학")
             if c["rec"]:
-                parts.append(f"권장 지정 {c['rec']}개 대학")
+                parts.append(f"권장 {c['rec']}개 대학")
             st.markdown(f"- **{s}** — {' · '.join(parts)}")
-        with st.expander("대학별로 자세히 보기"):
+        with st.expander(f"대학별로 자세히 보기 ({ur['n_univs']}개 대학)"):
             for e in ur["entries"]:
                 unit_label = f" {e['unit']}" if e["unit"] else ""
                 lines = []
@@ -621,26 +642,17 @@ def render_s3():
                 elif e["rec_raw"]:
                     lines.append("권장: " + e["rec_raw"])
                 st.markdown(f"- **{e['univ']}**{unit_label} — {' / '.join(lines)}")
-        st.markdown(
-            '<div class="cn-banner">ⓘ 지원자격이 아닌 <b>참고자료</b>예요(대교협, 2025-09-30 대학 발표 정리). '
-            '학교에 개설되지 않아 못 들은 과목은 대학이 다르게 평가해요 — '
-            '실제 기준은 꼭 각 대학 모집요강에서 확인해주세요.</div>', unsafe_allow_html=True)
+        st.caption("ⓘ 학교에 개설 안 돼 못 들은 과목은 대학이 다르게 평가해요 · "
+                   "실제 기준은 각 대학 모집요강 확인 (대교협, 2025-09-30 정리)")
 
     extra = R.major_extra(rec)
     univ = extra.get("설치대학", {})
-    label = (f"설치대학 더 보기 ({univ['univ_count']}곳)"
-             if univ.get("univ_count") else "설치대학 더 보기")
-    with st.expander(label):
-        table = _univ_table_html(univ)
-        if table:
-            st.markdown(table, unsafe_allow_html=True)
+    if univ.get("univ_count"):
+        with st.expander(f"이 학과가 있는 대학 보기 ({univ['univ_count']}곳)"):
+            st.markdown(_univ_table_html(univ), unsafe_allow_html=True)
             st.caption("4년제 모집단위 기준 — 실제 모집 여부는 각 대학 모집요강을 확인해주세요")
-        else:
-            st.caption("설치대학 정보가 아직 없어요.")
 
     st.divider()
-    st.caption("이미 듣고 있거나 신청한 과목은 위 과목을 펼쳐서 표시해두면, "
-               "우리 학교 현황에서 함께 정리돼요")
     if st.button("우리 학교에 있는지 확인하러 가기 →", type="primary", use_container_width=True):
         _go("s4")
 
@@ -725,8 +737,9 @@ def render_s4():
                    "(과목명이 이전 교육과정 기준일 수 있어요)")
         show_all_ach = st.session_state.get("cn_ach_all_s4", False)
         shown = ach_sorted if show_all_ach else ach_sorted[:5]
-        st.markdown(_ach_dist_table_html(shown, hi_bases=rec_bases),
-                    unsafe_allow_html=True)
+        st.markdown('<div class="cn-scroll">'
+                    + _ach_dist_table_html(shown, hi_bases=rec_bases)
+                    + '</div>', unsafe_allow_html=True)
         if len(ach_sorted) > 5:
             if show_all_ach:
                 if st.button("접기", key="cn_ach_less_s4"):
@@ -788,35 +801,32 @@ def render_s4():
         st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
         for typ, subj, kind in rows:
-            # 이모지 불릿(⬜/❓)은 폰트에 따라 색 있는 네모로 깨져 보이는 경우가 있어
-            # 전부 같은 텍스트 불릿으로 통일 — 상태는 오른쪽 버튼 문구로 충분히 구분됨.
             bullet = "•"
             cols = st.columns(ROW_COLS)
             with cols[0]:
+                # 담을 수 있는 미담김 과목만 체크박스 — 담기 경로를 체크박스로 일원화
                 if kind == "ok" and subj not in plan_set:
                     st.checkbox("선택", key=sel_key(typ, subj), label_visibility="collapsed")
             with cols[1]:
                 st.markdown(_pill_html(typ), unsafe_allow_html=True)
             cols[2].markdown(f"{bullet} {subj}")
             with cols[3]:
+                # 비활성 상태는 pill 뱃지(클릭 불가), 액션만 버튼 — 모양으로 구분
                 if kind == "done":
-                    st.markdown('<div class="cn-statusbtn">하는 중</div>', unsafe_allow_html=True)
+                    st.markdown('<span class="cn-badge done">✓ 이수</span>', unsafe_allow_html=True)
                 elif kind == "applied":
-                    # 신청함 상태는 이미 S5 '이미 듣고 있거나 신청한 과목'에서 taken 목록으로
-                    # 보여주므로 여기서 별도로 담을 필요가 없다 — 하는 중과 같은 비활성 표시로 통일.
-                    st.markdown('<div class="cn-statusbtn">신청함</div>', unsafe_allow_html=True)
+                    st.markdown('<span class="cn-badge applied">📝 신청</span>', unsafe_allow_html=True)
                 elif kind == "ok":
                     if subj in plan_set:
-                        st.markdown('<div class="cn-statusbtn">담음</div>', unsafe_allow_html=True)
-                    elif st.button("담기", key=f"cn_add_{typ}_{subj}", use_container_width=True):
-                        st.session_state["cn_plan"].append(
-                            {"subject": subj, "from_major": name, "type": typ})
-                        st.rerun()
+                        st.markdown('<span class="cn-badge done">담음</span>', unsafe_allow_html=True)
+                    else:
+                        st.markdown('<span class="cn-badge ok">담을 수 있어요</span>',
+                                    unsafe_allow_html=True)
                 elif kind == "no":
                     if st.button("대안 보기", key=f"cn_alt_{typ}_{subj}", use_container_width=True):
                         _alt_dialog(typ, subj)
                 else:
-                    st.markdown('<div class="cn-statusbtn">확인 필요</div>', unsafe_allow_html=True)
+                    st.markdown('<span class="cn-badge q">확인 필요</span>', unsafe_allow_html=True)
             st.markdown('<div class="cn-row-line"></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="cn-banner">ⓘ 신청 전 담임 선생님과 꼭 확인해주세요</div>',
@@ -845,6 +855,22 @@ def _decode_share(token):
     return json.loads(raw.decode("utf-8"))
 
 
+def _share_url():
+    """복사용 전체 공유 URL. Host 헤더로 절대 URL을 구성한다(경로는 /rebuild 고정)."""
+    token = _encode_share()
+    host = ""
+    try:
+        host = st.context.headers.get("Host", "")
+    except Exception:
+        host = ""
+    if host:
+        scheme = "http" if host.startswith(("localhost", "127.0.0.1")) else "https"
+        return f"{scheme}://{host}/rebuild?share={token}"
+    # Host를 못 얻으면 주소창을 갱신해 사용자가 주소창을 복사하도록
+    st.query_params["share"] = token
+    return f"?share={token}"
+
+
 # ──────────────────────────────────────────────────────────────────
 # S5 — 담임 선생님과 상의할 목록 (결승선)
 # ──────────────────────────────────────────────────────────────────
@@ -870,18 +896,22 @@ def render_s5():
         st.markdown("**상의할 과목**")
         for i, item in enumerate(list(plan)):
             cols = st.columns([4, 1])
-            tag = " 📝" if _taken_status(item["subject"]) == "신청함" else ""
+            tag = (' <span class="cn-badge applied">📝 신청</span>'
+                   if _taken_status(item["subject"]) == "신청함" else "")
             cols[0].markdown(_sub_row_html(item.get("type", ""), item["subject"]) + tag,
                               unsafe_allow_html=True)
             if cols[1].button("빼기", key=f"cn_rm_{i}"):
                 plan.pop(i)
+                st.toast("목록에서 뺐어요")
                 st.rerun()
 
     if taken:
         st.markdown("**이미 듣고 있거나 신청한 과목**")
         for t in taken:
-            mark = "✓" if t["status"] == "이수함" else "📝"
-            st.markdown(mark + " " + _sub_row_html(t.get("type", ""), t["subject"]),
+            badge = ('<span class="cn-badge done">✓ 이수</span>'
+                     if t["status"] == "이수함"
+                     else '<span class="cn-badge applied">📝 신청</span>')
+            st.markdown(_sub_row_html(t.get("type", ""), t["subject"], bullet="") + " " + badge,
                         unsafe_allow_html=True)
 
     if plan:
@@ -890,8 +920,10 @@ def render_s5():
                     unsafe_allow_html=True)
 
     if st.button("공유 링크 만들기", type="primary", use_container_width=True):
-        st.query_params["share"] = _encode_share()
-        st.success("주소창의 링크를 복사해서 담임 선생님께 보내주세요.")
+        st.session_state["cn_share_url"] = _share_url()
+    if st.session_state.get("cn_share_url"):
+        st.caption("아래 링크를 복사해서 담임 선생님께 보내주세요 (우측 복사 아이콘)")
+        st.code(st.session_state["cn_share_url"], language=None)
     st.caption(f"학교: {p['school_name']} · {p['grade']}"
                + (f" {p['semester']}학기" if p["grade"] == "고1" else ""))
 
@@ -911,16 +943,18 @@ def _alt_dialog(typ, subj):
     st.markdown(
         '<div class="cn-banner">ⓘ 개설 신청이 많으면 학교가 열기도 해요 — '
         '수요조사에 꼭 적어주세요</div>', unsafe_allow_html=True)
-    if st.button("닫기", key="cn_alt_close", use_container_width=True):
-        st.rerun()
+    _, bc = st.columns([2, 1])
+    with bc:
+        if st.button("닫기", key="cn_alt_close"):
+            st.rerun()
 
 
 # ──────────────────────────────────────────────────────────────────
 # S7 — 공유 링크 읽기전용 뷰
 # ──────────────────────────────────────────────────────────────────
 def render_s7_read(data):
-    st.markdown("### 학생 플랜 요약")
     prof = data.get("profile", {})
+    st.markdown("### 과목 선택 초안")
     st.markdown(f"**{prof.get('school_name','')} · {prof.get('grade','')}**")
     interests = data.get("interests", {})
     st.caption(f"관심: {interests.get('utterance') or ', '.join(interests.get('chips', [])) or '-'}")
@@ -934,12 +968,14 @@ def render_s7_read(data):
     else:
         st.caption("아직 없어요")
 
-    st.markdown("**이수 체크**")
+    st.markdown("**이미 듣고 있거나 신청한 과목**")
     taken = data.get("taken", [])
     if taken:
         for t in taken:
-            mark = "✓" if t["status"] == "이수함" else "📝"
-            st.markdown(mark + " " + _sub_row_html(t.get("type", ""), t["subject"]),
+            badge = ('<span class="cn-badge done">✓ 이수</span>'
+                     if t["status"] == "이수함"
+                     else '<span class="cn-badge applied">📝 신청</span>')
+            st.markdown(_sub_row_html(t.get("type", ""), t["subject"], bullet="") + " " + badge,
                         unsafe_allow_html=True)
     else:
         st.caption("아직 없어요")
