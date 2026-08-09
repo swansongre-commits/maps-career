@@ -39,45 +39,102 @@ R = load_engine()
 CDB = load_content_db()
 
 # ──────────────────────────────────────────────────────────────────
-# 디자인 — highschool.py FABRIK 팔레트 계승(무채색 에디토리얼)
+# 디자인 — 05_디자인시스템.md v1.0 (블랙/화이트 · 1px 헤어라인 · 미니멀)
+#   · 배경은 순백 고정, 유채색 금지. 상태 구분은 명도·선·형태로만 표현.
+#   · 라운드는 2px 기본(스위치·카운트 뱃지만 pill 예외).
+#   · 강조 사다리 E1(검정 면) → E2(1px 잉크선) → E3(회색 실선) → E4~(점선·해치).
 # ──────────────────────────────────────────────────────────────────
 FABRIK = {
-    "bg": "#F5F5F5", "surface": "#FFFFFF", "surface_soft": "#F0F0F0",
-    "border": "#E4E4E4", "line_strong": "#C9C9C9",
-    "cta": "#141414", "cta_soft": "#EDEDED",
-    "text": "#141414", "ink_mid": "#3F3F3F", "muted": "#6B6B6B", "soft": "#9A9A9A",
+    # 표면
+    "bg": "#FFFFFF",           # --bg-page (순백 고정)
+    "surface": "#FFFFFF",      # --surface-1
+    "surface_soft": "#FAFAFA",  # --surface-2 (행 하이라이트·hover)
+    "surface_note": "#F5F5F5",  # --surface-3 (고지·안내 패널)
+    # 선
+    "border": "#E0E0E0",       # --line-hairline
+    "line_faint": "#EBEBEB",   # --line-faint (표 행)
+    "line_default": "#C7C7C7",  # --line-default (카드·칩)
+    "line_strong": "#8C8C8C",  # --line-strong (폼 컨트롤, 3:1)
+    "line_ink": "#000000",     # --line-ink (선택·활성·표 헤더 하단)
+    # 텍스트
+    "cta": "#000000",          # 최상위 액션 배경
+    "cta_soft": "#F5F5F5",
+    "text": "#141414",         # --text-primary
+    "ink_mid": "#4D4D4D",      # --text-secondary
+    "muted": "#6E6E6E",        # --text-muted (4.5:1 하한)
+    "soft": "#6E6E6E",         # 캡션도 하한 준수 — 연회색 텍스트 금지
+    "disabled": "#A3A3A3",     # --text-disabled (비활성 전용)
 }
+
+FONT_SANS = ('"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, '
+             '"Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif')
 
 CSS = f"""
 <style>
-.stApp {{ background: {FABRIK['bg']}; color: {FABRIK['text']}; }}
-/* 버튼 — 흰 배경·얇은 테두리·8px 라운드로 통일(FABRIK 기본형) */
+.stApp {{ background: {FABRIK['bg']}; color: {FABRIK['text']};
+    font-family: {FONT_SANS}; }}
+.stApp, .stApp p, .stApp li, .stApp td, .stApp th, .stApp button, .stApp input, .stApp label {{
+    font-family: {FONT_SANS}; }}
+/* 숫자 정렬 — 표·수치 헤더의 자릿수 흔들림 방지 */
+.stApp {{ font-variant-numeric: tabular-nums; }}
+/* 제목 — 크기·굵기로만 위계(색 사용 금지) */
+.stApp h1 {{ font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; }}
+.stApp h2 {{ font-size: 1.2rem; font-weight: 600; letter-spacing: -0.015em; }}
+.stApp h3 {{ font-size: 1.02rem; font-weight: 600; letter-spacing: -0.01em; }}
+/* 버튼 — 흰 배경·1px 선·2px 라운드(E3). 기본형은 회색 실선 */
 div[data-testid="stButton"] > button {{
     width: 100%; background: #FFFFFF; color: {FABRIK['text']};
-    border: 1px solid {FABRIK['line_strong']}; border-radius: 8px;
-    padding: 0.5rem 0.85rem; font-weight: 700; transition: all .12s ease; }}
-div[data-testid="stButton"] > button:hover {{ border-color: {FABRIK['cta']}; background: #FAFAFA; }}
+    border: 1px solid {FABRIK['line_default']}; border-radius: 2px;
+    padding: 0.5rem 0.85rem; font-weight: 600; transition: all .12s ease; }}
+div[data-testid="stButton"] > button:hover {{
+    border-color: {FABRIK['ink_mid']}; background: {FABRIK['surface_soft']}; }}
+div[data-testid="stButton"] > button:focus-visible {{
+    outline: 2px solid {FABRIK['line_ink']}; outline-offset: 2px; }}
+/* 최상위 액션만 검정 면 채움(E1) — 화면당 2회 이하 원칙 */
 div[data-testid="stButton"] > button[kind="primary"] {{
-    background: {FABRIK['cta']}; color: #fff; border-color: {FABRIK['cta']}; }}
-div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; }}
+    background: {FABRIK['cta']}; color: #FFFFFF; border-color: {FABRIK['cta']};
+    font-weight: 700; }}
+div[data-testid="stButton"] > button[kind="primary"]:hover {{
+    background: #1A1A1A; border-color: #1A1A1A; }}
+/* 입력 컨트롤 — 폼 테두리는 line-strong(3:1), 라운드 2px */
+div[data-baseweb="select"] > div, .stTextInput input, .stTextArea textarea {{
+    border-radius: 2px !important; border-color: {FABRIK['line_strong']} !important; }}
+/* 링크 — Streamlit 기본 파랑 제거. 잉크색 + 밑줄(밑줄은 링크 전용) */
+.stApp a, .stApp a:visited {{ color: {FABRIK['text']} !important;
+    text-decoration: underline; text-underline-offset: 2px;
+    text-decoration-color: {FABRIK['line_default']}; }}
+.stApp a:hover {{ text-decoration-color: {FABRIK['line_ink']}; }}
+.stApp a svg {{ fill: {FABRIK['muted']} !important; color: {FABRIK['muted']} !important; }}
+/* 라디오·체크박스 선택 표시 — 검정으로 통일(테마 강조색 의존 제거) */
+div[data-testid="stRadio"] [data-baseweb="radio"] div[aria-checked="true"],
+div[data-testid="stCheckbox"] [data-baseweb="checkbox"] span[aria-checked="true"] {{
+    background-color: {FABRIK['cta']} !important; border-color: {FABRIK['cta']} !important; }}
+/* 진행 표시·구분선 */
+hr {{ border: none; border-top: 1px solid {FABRIK['border']}; margin: 18px 0; }}
 .cn-row-line {{ border-bottom: 1px solid {FABRIK['border']}; margin: 2px 0 8px; }}
 .cn-sub {{ color: {FABRIK['muted']}; font-size: 0.92rem; margin: -0.3rem 0 1rem; }}
-.cn-banner {{ background: #FFFFFF; border: 1px solid {FABRIK['border']};
-    border-radius: 8px; padding: 10px 14px; font-size: 0.86rem; color: {FABRIK['muted']};
+/* 고지·안내 — 면 채움 없이 좌측 1px 레일 + 연회색 배경(E6) */
+.cn-banner {{ background: {FABRIK['surface_note']}; border: none;
+    border-left: 1px solid {FABRIK['line_default']};
+    border-radius: 0; padding: 10px 14px; font-size: 0.86rem; color: {FABRIK['muted']};
     margin-bottom: 14px; }}
-.cn-banner.warn {{ border-color: #E0A94F; color: #8A6320; background: #FFF8EC; }}
-.cn-card {{ background: {FABRIK['surface']}; border: 1px solid {FABRIK['border']};
-    border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }}
-.cn-major {{ background: {FABRIK['surface_soft']}; border-radius: 8px; padding: 10px 12px;
-    margin-bottom: 8px; }}
-.cn-major .name {{ font-weight: 800; font-size: 1.0rem; }}
+/* 주의 고지 — 색 대신 좌측 2px 잉크 바로 위계 상승(E2) */
+.cn-banner.warn {{ border-left: 2px solid {FABRIK['line_ink']};
+    color: {FABRIK['text']}; background: {FABRIK['surface_note']}; }}
+.cn-card {{ background: {FABRIK['surface']}; border: 1px solid {FABRIK['line_default']};
+    border-radius: 2px; padding: 14px 16px; margin-bottom: 12px; }}
+/* 학과 카드 — 회색 면 대신 1px 헤어라인 구획 */
+.cn-major {{ background: {FABRIK['surface']}; border: 1px solid {FABRIK['border']};
+    border-radius: 2px; padding: 10px 12px; margin-bottom: 8px; }}
+.cn-major .name {{ font-weight: 600; font-size: 1.0rem; color: {FABRIK['text']}; }}
 .cn-major .summary {{ color: {FABRIK['muted']}; font-size: 0.86rem; margin: 4px 0;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }}
-.cn-major .reason {{ color: {FABRIK['ink_mid']}; font-size: 0.82rem; font-weight: 700; }}
-.cn-major-univ {{ color: {FABRIK['soft']}; font-size: 0.8rem; margin-top: 4px; }}
-.cn-cathead {{ font-weight: 800; font-size: 1.02rem; margin-bottom: 8px; }}
-.cn-summary {{ font-size: 0.92rem; color: {FABRIK['muted']}; margin-bottom: 12px; line-height: 1.7; }}
-.cn-summary b {{ color: {FABRIK['text']}; }}
+.cn-major .reason {{ color: {FABRIK['ink_mid']}; font-size: 0.82rem; font-weight: 600; }}
+.cn-major-univ {{ color: {FABRIK['muted']}; font-size: 0.8rem; margin-top: 4px; }}
+.cn-cathead {{ font-weight: 600; font-size: 1.02rem; margin-bottom: 8px; }}
+.cn-summary {{ font-size: 0.92rem; color: {FABRIK['muted']}; margin-bottom: 12px; line-height: 1.7;
+    max-width: 68ch; }}
+.cn-summary b {{ color: {FABRIK['text']}; font-weight: 600; }}
 .cn-chip-grid div[data-testid="stButton"] > button {{ min-height: 56px; font-size: 0.86rem; }}
 /* 관심 칩 — PC는 4열 그대로, 모바일(좁은 화면)만 2열로(Streamlit 기본 컬럼 세로쌓임 방지) */
 [class*="cn_chip_grid"] div[data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; gap: 8px; }}
@@ -86,48 +143,54 @@ div[data-testid="stButton"] > button[kind="primary"]:hover {{ background: #000; 
         flex: 0 1 calc(50% - 4px) !important;
         min-width: calc(50% - 4px) !important; width: calc(50% - 4px) !important; }}
 }}
-.cn-badge {{ display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.74rem;
-    font-weight: 800; }}
-/* 개설=잉크 채움(FABRIK 강조=잉크 반전) · 미개설=점선 외곽 · 확인필요=회색 물음 */
+/* 상태 배지 — 라운드 2px(pill 예외 아님). 색 없이 채움·선·점선으로 구분 */
+.cn-badge {{ display: inline-block; padding: 3px 7px; border-radius: 2px; font-size: 0.75rem;
+    font-weight: 500; letter-spacing: 0.02em; }}
+/* 개설=검정 면 채움(E1) · 미개설=회색 실선(E3) · 확인필요=점선(E4) */
 .cn-badge.ok {{ background: {FABRIK['cta']}; color: #FFFFFF; border: 1px solid {FABRIK['cta']}; }}
-.cn-badge.done {{ background: {FABRIK['surface_soft']}; color: {FABRIK['ink_mid']}; border: 1px solid {FABRIK['line_strong']}; }}
-.cn-badge.applied {{ background: {FABRIK['surface_soft']}; color: {FABRIK['ink_mid']}; border: 1px dashed {FABRIK['line_strong']}; }}
-.cn-badge.no {{ background: #FFFFFF; color: {FABRIK['muted']}; border: 1px dashed {FABRIK['line_strong']}; }}
-.cn-badge.q {{ background: {FABRIK['surface_soft']}; color: {FABRIK['soft']}; border: 1px solid {FABRIK['border']}; }}
-/* 유형 pill — 무채색 베이스에서 튀지 않게 채도 하향(파스텔) */
-.cn-pill {{ display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.76rem;
-    font-weight: 800; white-space: nowrap; }}
-.cn-pill.il {{ background: #FBEEEF; color: #A65460; }}
-.cn-pill.jr {{ background: #EBF4EE; color: #4A7E5E; }}
-.cn-pill.yh {{ background: #EDF1F8; color: #5470A0; }}
+.cn-badge.done {{ background: #FFFFFF; color: {FABRIK['text']}; border: 1px solid {FABRIK['line_ink']}; }}
+.cn-badge.applied {{ background: #FFFFFF; color: {FABRIK['ink_mid']}; border: 1px dashed {FABRIK['line_strong']}; }}
+.cn-badge.no {{ background: #FFFFFF; color: {FABRIK['muted']}; border: 1px solid {FABRIK['line_strong']}; }}
+.cn-badge.q {{ background: {FABRIK['surface_note']}; color: {FABRIK['muted']}; border: 1px dotted {FABRIK['line_strong']}; }}
+/* 과목 유형 — 유채색 pill 제거. 무채색 라벨(선 없는 오버라인형) */
+.cn-pill {{ display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 0.74rem;
+    font-weight: 600; letter-spacing: 0.04em; white-space: nowrap;
+    color: {FABRIK['muted']}; background: {FABRIK['surface_note']}; }}
+.cn-pill.il {{ }}
+.cn-pill.jr {{ border-left: 2px solid {FABRIK['line_strong']}; }}
+.cn-pill.yh {{ border-left: 2px solid {FABRIK['line_ink']}; }}
 /* 과목 상세 '＋보기' 아이콘 버튼 — 작고 가볍게 */
 [class*="cn_s3see"] div[data-testid="stButton"] > button {{
-    padding: 0.25rem 0; min-height: 32px; font-weight: 700; }}
+    padding: 0.25rem 0; min-height: 32px; font-weight: 600; }}
 .cn-row {{ display: flex; align-items: center; gap: 8px; min-height: 38px; }}
 div[data-testid="stCheckbox"] {{ display: flex; justify-content: flex-end; }}
 /* 과목 체크박스 — 기본 크기가 너무 작아 확대(터치하기 쉽게) */
 div[data-testid="stCheckbox"] label {{ transform: scale(1.6); transform-origin: right center; }}
-/* 안내 모달 — 경고·컨펌창처럼 안 보이게 부드럽게. 각진 빨간 테두리·풀폭 검정버튼 지양 */
+/* 안내 모달 — 1px 잉크 테두리 + radius 4(상한). 섀도 없음 */
 div[data-testid="stDialog"] > div {{
-    border-radius: 16px !important; border: none !important;
-    box-shadow: 0 12px 40px rgba(20,20,20,0.12) !important; }}
+    border-radius: 4px !important; border: 1px solid {FABRIK['line_ink']} !important;
+    box-shadow: none !important; }}
 div[data-testid="stDialog"] h2, div[data-testid="stDialog"] [data-testid="stMarkdownContainer"] h2 {{
-    font-size: 1.15rem !important; font-weight: 800; }}
+    font-size: 1.15rem !important; font-weight: 600; }}
 div[data-testid="stDialog"] button[aria-label="Close"] {{
     border: none !important; background: transparent !important; opacity: .5; }}
 div[data-testid="stDialog"] button[aria-label="Close"]:hover {{ opacity: 1; }}
 /* S4 표 — 체크박스·필·과목명·버튼 높이가 서로 달라 위쪽 기준으로 삐뚤빼뚤해 보이던 것을
    각 행의 아래쪽 기준으로 맞춘다 */
 [class*="cn_s4_table"] div[data-testid="stHorizontalBlock"] {{ align-items: flex-end; }}
-/* 설치대학 표 — highschool.py univ-tb 톤 계승(1px 라인·흰 셀·지역 굵게) */
+/* 표 — 세로 괘선 제거. 헤더 하단 1px 잉크선 + 행 구분 1px faint(문서형 리듬) */
 table.cn-univtb {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 4px 0 10px; }}
 table.cn-univtb th, table.cn-univtb td {{
-    border: 1px solid {FABRIK['border']}; padding: 5px 10px;
+    border: none; border-bottom: 1px solid {FABRIK['line_faint']}; padding: 7px 10px;
     text-align: left; vertical-align: top; background: #FFFFFF; }}
-table.cn-univtb th {{ background: {FABRIK['surface_soft']}; font-weight: 700; white-space: nowrap; }}
-table.cn-univtb td.rg {{ white-space: nowrap; font-weight: 700; width: 72px; }}
-table.cn-univtb tr.hi td {{ background: #FFF8EC; }}
-table.cn-univtb tr.hi td.rg {{ color: #8A6320; }}
+table.cn-univtb th {{ background: #FFFFFF; font-weight: 600; white-space: nowrap;
+    font-size: 0.76rem; letter-spacing: 0.06em; color: {FABRIK['muted']};
+    border-bottom: 1px solid {FABRIK['line_ink']}; }}
+table.cn-univtb td.rg {{ white-space: nowrap; font-weight: 600; width: 72px; }}
+/* 우리 지역 강조 — 색 채움 대신 좌측 2px 잉크 바 + 연회색 표면(E2) */
+table.cn-univtb tr.hi td {{ background: {FABRIK['surface_soft']}; }}
+table.cn-univtb tr.hi td.rg {{ color: {FABRIK['text']};
+    box-shadow: inset 2px 0 0 0 {FABRIK['line_ink']}; }}
 /* 넓은 표(성취표 8열 등) 모바일 가로 스크롤 — 페이지 자체는 안 밀리게 */
 .cn-scroll {{ overflow-x: auto; -webkit-overflow-scrolling: touch; }}
 .cn-scroll table.cn-univtb {{ min-width: 520px; }}
@@ -406,7 +469,7 @@ def render_s1():
                                label_visibility="collapsed")
 
     chips = st.session_state["cn_interests"]["chips"]
-    st.markdown(f"아니면 골라보세요 <span style='color:#6B6B6B'>(선택 {len(chips)}/3)</span>",
+    st.markdown(f"아니면 골라보세요 <span style='color:{FABRIK['muted']}'>(선택 {len(chips)}/3)</span>",
                 unsafe_allow_html=True)
     with st.container(key="cn_chip_grid"):
         for row_start in range(0, len(CHIPS), 4):
@@ -664,7 +727,8 @@ def render_s3():
 def _first_visit_notice():
     """모달이지만 경고·컨펌창처럼 안 보이게 — 부드러운 카피와 얌전한 버튼(CSS는 상단 참고)."""
     st.markdown(
-        '<p style="font-size:0.9rem;color:#3F3F3F;line-height:1.8;margin:2px 0 12px">'
+        f'<p style="font-size:0.9rem;color:{FABRIK["ink_mid"]};line-height:1.8;'
+        'margin:2px 0 12px;max-width:68ch">'
         '과목 선택이 합불을 정하지 않아요. 참고만 하시고, 진짜 결정은 담임 선생님과 함께해주세요.<br><br>'
         '<b>이 데이터의 출처</b> — 개설과목은 학교알리미 2025·2026 공시, 권장 선택과목은 '
         '커리어넷 학과정보 기준이에요.<br><br>'
